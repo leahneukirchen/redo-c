@@ -195,8 +195,6 @@ check_dofile(char *fmt, ...)
 	vsnprintf(dofile, sizeof dofile, fmt, ap);
 	va_end(ap);
 
-	printf("CDOF %s\n", dofile);
-
 	if (access (dofile, F_OK) == 0) {
 		return strdup(dofile);
 	} else {
@@ -324,14 +322,12 @@ targetchdir(char *target) {
 		int fd;
 		*base = 0;
 		fd = openat(dir_fd, target, O_RDONLY | O_DIRECTORY);
-		printf("CHDIR %s\n", target);
 		*base = '/';
 		fchdir(fd);
 		close(fd);
 		return base+1;
 	} else {
 		fchdir(dir_fd);
-		printf("CHDIR [.]\n");
 		return target;
 	}
 }
@@ -350,8 +346,6 @@ check_deps(char *target)
 	int ok = 1;
 	int fd;
 
-	printf("checkdeps %s\n", target);
-
 	target = targetchdir(target);
 
 	if (access(target, F_OK) != 0)
@@ -366,7 +360,6 @@ check_deps(char *target)
 		char line[4096];
 		if (fgets(line, sizeof line, f)) {
 			line[strlen(line)-1] = 0; // strip \n
-			printf ("CHECK %s\n", line);
 			switch (line[0]) {
 			case '-':  // must not exist 
 				if (access(line+1, F_OK) == 0)
@@ -396,8 +389,6 @@ check_deps(char *target)
 	}
 
 	fclose(f);
-
-	printf("CHECKED %s %d\n", target, ok);
 
 	return ok;
 }
@@ -436,7 +427,6 @@ find_job(pid_t pid)
 	struct job *j;
 
 	for (j = jobhead; j; j = j->next) {
-		printf("scan %d\n", j->pid);
 		if (j->pid == pid)
 			return j;
 	}
@@ -475,7 +465,7 @@ run_script(char *target, int implicit)
 	
 	pid_t pid;
 
-	printf("redo%*.*s %s # %s\n", level*2, level*2, " ", target, dofile);
+	printf("redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
 
 	pid = fork();
 	if (pid < 0) {
@@ -505,8 +495,6 @@ djb-style default.o.do:
 		setenvfd("REDO_DEP_FD", dep_fd);
 		setenvfd("REDO_LEVEL", level + 1);
 
-		system("ls -l /proc/$$/fd");
-
 		if (shellwrap)
 			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
 			    dofile, target, basename, temp_target, (char *) 0);
@@ -529,8 +517,6 @@ djb-style default.o.do:
 
 		insert_job(job);
 
-		printf("pid %d\n", pid);
-
 		return job;
 	}
 
@@ -540,8 +526,6 @@ djb-style default.o.do:
 static int
 try_procure(char *target)
 {
-	printf("try_procure imj %s %d\n", target, implicit_jobs);
-
 	if (implicit_jobs > 0) {
 		implicit_jobs--;
 		return 1;
@@ -565,8 +549,6 @@ try_procure(char *target)
 static int
 procure(char *target)
 {
-	printf("procure imj %s %d\n", target, implicit_jobs);
-
 	if (implicit_jobs > 0) {
 		implicit_jobs--;
 		return 1;
@@ -591,7 +573,6 @@ create_pool()
 			
 			for (i = 0; i < jobs-1; i++)
 				write(poolwr_fd, "\0", 1);
-			printf("enqueued %d tokens\n", jobs-1);
 
 			setenvfd("REDO_RD_FD", poolrd_fd);
 			setenvfd("REDO_WR_FD", poolwr_fd);
@@ -631,8 +612,6 @@ redo_ifchange(int targetc, char *targetv[])
 				continue;
 			}
 
-			printf("looking at [%d] %s\n", targeti, target);
-
 			if (try_procure(target)) {
 				procured = 1;
 				targeti++;
@@ -642,7 +621,6 @@ redo_ifchange(int targetc, char *targetv[])
 
 		pid = waitpid(-1, &status, procured ? WNOHANG : 0);
 
-		printf("waitpid %d %d %d/%d\n", pid, errno, targeti, targetc);
 		if (pid == 0)
 			continue;  // nohang
 
@@ -659,12 +637,8 @@ redo_ifchange(int targetc, char *targetv[])
 		job = find_job(pid);
 		
 		if (!job) {
-			printf("lost child pid=%d!?\n", pid);
 			exit(-1);
 		}
-		printf("job %d with temp_depfile %s %s exited with %d\n",
-		    job->pid, job->temp_depfile, job->target, status);
-
 		remove_job(job);
 
 		if (status > 0) {
@@ -674,18 +648,15 @@ redo_ifchange(int targetc, char *targetv[])
 			char *target = targetchdir(job->target);
 			char *depfile = targetdep(target);
 
-			printf("renamed %s to %s.\n", job->temp_depfile, depfile);
 			rename(job->temp_depfile, depfile);
 
 			struct stat st;
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
-				printf("renamed %s to %s.\n", job->temp_target, target);
 				rename(job->temp_target, target);
 			}
 		}
 		
-		printf("ji: %d %d\n", job->implicit, kflag);
 		if (job->implicit)
 			implicit_jobs++;
 		else
@@ -720,7 +691,6 @@ main(int argc, char *argv[])
 	int opt;
 
 	dep_fd = envfd("REDO_DEP_FD");
-	printf("DEPFD %d\n", dep_fd);
 
 	level = envfd("REDO_LEVEL");
 	if (level < 0)
@@ -796,7 +766,8 @@ main(int argc, char *argv[])
 	} else if (strcmp(program, "redo-hash") == 0) {
 		printf("%s\n", hashfile(0));
 	} else {
-		printf("not implemented %s\n", program);
+		fprintf(stderr, "not implemented %s\n", program);
+		exit(-1);
 	}
 
 	return 0;
