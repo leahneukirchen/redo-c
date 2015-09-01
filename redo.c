@@ -1,3 +1,13 @@
+/* An implementation of the redo build system
+   in portable C with zero dependencies
+
+   To the extent possible under law,
+   Christian Neukirchen <chneukirchen@gmail.com>
+   has waived all copyright and related or neighboring rights to this work.
+
+   http://creativecommons.org/publicdomain/zero/1.0/
+*/
+
 /*
 ##% cc -g -Os -Wall -Wextra -Wwrite-strings -o $STEM $FILE
 */
@@ -7,6 +17,7 @@ current bugs:
   dependency-loop: unlimited recursion
     need locks
 
+todo:
   test job server properly
 */
 
