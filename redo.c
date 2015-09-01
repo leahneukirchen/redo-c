@@ -223,9 +223,10 @@ this function assumes no / in target
 static char *
 find_dofile(char *target)
 {
-	char *dofile;
 	char updir[1024];
 	char *u = updir;
+	char *dofile, *s;
+	struct stat st, ost;
 
 	dofile = check_dofile("./%s.do", target);
 	if (dofile)
@@ -235,7 +236,6 @@ find_dofile(char *target)
 	*u++ = '/';
 	*u = 0;
 
-	struct stat st, ost;
 	st.st_dev = ost.st_dev = st.st_ino = ost.st_ino = 0;
 	
 	while (1) {
@@ -246,7 +246,7 @@ find_dofile(char *target)
 		if (ost.st_dev == st.st_dev && ost.st_ino == st.st_ino)
 			break;  // reached root dir, .. = .
 
-		char *s = target;
+		s = target;
 		while (*s) {
 			if (*s++ == '.') {
 				dofile = check_dofile("%sdefault.%s.do", updir, s);
@@ -454,34 +454,36 @@ find_job(pid_t pid)
 static struct job *
 run_script(char *target, int implicit)
 {
+	char temp_depfile[] = ".dep.XXXXXX";
+	char temp_target[] = ".target.XXXXXX";
 	char *orig_target = target;
+	int old_dep_fd = dep_fd;
+	int fd;
+	int shellwrap;
+	char *dofile;
+	pid_t pid;
+
 	target = targetchdir(target);
 
-	char temp_depfile[] = ".dep.XXXXXX";
-	int old_dep_fd = dep_fd;
 	dep_fd = mkstemp(temp_depfile);
 
-	char temp_target[] = ".target.XXXXXX";
-	int target_fd = mkstemp(temp_target);
-	close(target_fd);
+	fd = mkstemp(temp_target);
+	close(fd);
 
 	// TODO locking to detect parallel jobs building same target?
 
-	char *dofile = find_dofile(target);
-
+	dofile = find_dofile(target);
 	if (!dofile) {
 		fprintf(stderr, "no dofile for %s.\n", target);
 		exit(1);
 	}
 
-	int shellwrap = (access (dofile, X_OK) != 0);
+	shellwrap = (access (dofile, X_OK) != 0);
 
-	int fd = open(dofile, O_RDONLY);
+	fd = open(dofile, O_RDONLY);
 	dprintf(dep_fd, "=%s %s\n", hashfile(fd), dofile);
 	close(fd);
 	
-	pid_t pid;
-
 	printf("redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
 
 	pid = fork();
@@ -522,12 +524,13 @@ djb-style default.o.do:
 		vacate(implicit);
 		exit(-1);
 	} else {
-		close(dep_fd);
-		dep_fd = old_dep_fd;
-		
 		struct job *job = malloc (sizeof *job);
 		if (!job)
 			exit(-1);
+
+		close(dep_fd);
+		dep_fd = old_dep_fd;
+
 		job->pid = pid;
 		job->target = orig_target;
 		job->temp_depfile = strdup(temp_depfile);
@@ -662,12 +665,12 @@ redo_ifchange(int targetc, char *targetv[])
 			remove(job->temp_depfile);
 			remove(job->temp_target);
 		} else {
+			struct stat st;
 			char *target = targetchdir(job->target);
 			char *depfile = targetdep(target);
 
 			rename(job->temp_depfile, depfile);
 
-			struct stat st;
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
 				rename(job->temp_target, target);
@@ -702,6 +705,7 @@ record_deps(int targetc, char *targetv[])
 int
 main(int argc, char *argv[])
 {
+	char *program;
 	int opt;
 
 	dep_fd = envfd("REDO_DEP_FD");
@@ -714,7 +718,6 @@ main(int argc, char *argv[])
 	kflag = envfd("REDO_KEEP_GOING");
 	xflag = envfd("REDO_TRACE");
 
-	char *program;
 	if ((program = strrchr(argv[0], '/')))
 		program++;
 	else
