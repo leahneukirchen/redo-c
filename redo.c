@@ -700,14 +700,18 @@ static void
 record_deps(int targetc, char *targetv[])
 {
 	int targeti = 0;
+	int fd;
 
 	dep_fd = envfd("REDO_DEP_FD");
+	if (dep_fd < 0)
+		return;
 
 	for (targeti = 0; targeti < targetc; targeti++) {
-		int fd = open(targetv[targeti], O_RDONLY);
-		char *hash = hashfile(fd);
+		fd = open(targetv[targeti], O_RDONLY);
+		if (fd < 0)
+			continue;
 		// here, we write out the unmodified target name!
-		dprintf(dep_fd, "=%s!%s\n", hash, targetv[targeti]);
+		dprintf(dep_fd, "=%s!%s\n", hashfile(fd), targetv[targeti]);
 		close(fd);
 	}
 }
