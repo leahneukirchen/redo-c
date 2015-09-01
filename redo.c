@@ -7,8 +7,6 @@ current bugs:
   dependency-loop: unlimited recursion
     need locks
 
-  exts: prepend ./? --- execl should be good enough
-
   test job server properly
 */
 
@@ -212,6 +210,7 @@ dir/base.a.b
        will look for dir/base.a.b.do,
        dir/default.a.b.do, dir/default.b.do, dir/default.do,
        default.a.b.do, default.b.do, and default.do.
+
 this function assumes no / in target
 */
 static char *
@@ -236,7 +235,7 @@ find_dofile(char *target)
 		ost = st;
 
 		if (stat(updir, &st) < 0)
-			return 0;;
+			return 0;
 		if (ost.st_dev == st.st_dev && ost.st_ino == st.st_ino)
 			break;  // reached root dir, .. = .
 
@@ -426,7 +425,7 @@ remove_job(struct job *job)
 	else {
 		struct job *j = jobhead;
 		while (j->next != job)
-				j = j->next;
+			j = j->next;
 		j->next = j->next->next;
 	}
 }
@@ -737,9 +736,7 @@ main(int argc, char *argv[])
 	else
 		program = argv[0];
 
-	// XXX argument parsing: -k -jN -x/-v -f -C
-
-        while ((opt = getopt(argc, argv, "+kj:xfC:")) != -1) {
+        while ((opt = getopt(argc, argv, "+kxfj:C:")) != -1) {
                 switch (opt) {
                 case 'k':
                         kflag = 1;
@@ -763,7 +760,7 @@ main(int argc, char *argv[])
 			}
 			break;
                 default:
-			fprintf(stderr, "usage: %s [-kfx] [-jN] [-Cdir] [TARGETS]\n", program);
+			fprintf(stderr, "usage: %s [-kfx] [-jN] [-Cdir] [TARGETS...]\n", program);
                         exit(1);
                 }
         }
