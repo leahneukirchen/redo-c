@@ -459,7 +459,6 @@ run_script(char *target, int implicit)
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
 	int fd;
-	int shellwrap;
 	char *dofile;
 	pid_t pid;
 
@@ -477,8 +476,6 @@ run_script(char *target, int implicit)
 		fprintf(stderr, "no dofile for %s.\n", target);
 		exit(1);
 	}
-
-	shellwrap = (access (dofile, X_OK) != 0);
 
 	fd = open(dofile, O_RDONLY);
 	dprintf(dep_fd, "=%s %s\n", hashfile(fd), dofile);
@@ -515,7 +512,7 @@ djb-style default.o.do:
 		setenvfd("REDO_DEP_FD", dep_fd);
 		setenvfd("REDO_LEVEL", level + 1);
 
-		if (shellwrap)
+		if (access (dofile, X_OK) != 0)  // run -x files with /bin/sh
 			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
 			    dofile, target, basename, temp_target, (char *) 0);
 		else
