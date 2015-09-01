@@ -677,14 +677,22 @@ redo_ifchange(int targetc, char *targetv[])
 			char *target = targetchdir(job->target);
 			char *depfile = targetdep(target);
 
-			rename(job->temp_depfile, depfile);
-
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
+				int dfd, tfd;
+
+				dfd = open(job->temp_depfile, O_WRONLY|O_APPEND);
+				tfd = open(job->temp_target, O_RDONLY);
+				dprintf(dfd, "=%s@%s\n", hashfile(tfd), target);
+				close(dfd);
+				close(tfd);
+
 				rename(job->temp_target, target);
 			} else {
 				remove(job->temp_target);
 			}
+
+			rename(job->temp_depfile, depfile);
 		}
 
 		vacate(job->implicit);
