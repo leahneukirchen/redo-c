@@ -201,7 +201,7 @@ redo_ifcreate(char *target)
 static char *
 check_dofile(const char *fmt, ...)
 {
-	char dofile[1024];
+	static char dofile[1024];
 
 	va_list ap;
 	va_start(ap, fmt);
@@ -209,7 +209,7 @@ check_dofile(const char *fmt, ...)
 	va_end(ap);
 
 	if (access (dofile, F_OK) == 0) {
-		return strdup(dofile);
+		return dofile;
 	} else {
 		redo_ifcreate(dofile);
 		return 0;
