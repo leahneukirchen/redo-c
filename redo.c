@@ -561,8 +561,8 @@ procure(char *target)
 void
 create_pool()
 {
-	poolrd_fd = envfd("REDO_WR_FD");
-	poolwr_fd = envfd("REDO_RD_FD");
+	poolrd_fd = envfd("REDO_RD_FD");
+	poolwr_fd = envfd("REDO_WR_FD");
 	if (poolrd_fd < 0 || poolwr_fd < 0) {
 		int jobs = envfd("JOBS");
 		if (jobs > 1) {
