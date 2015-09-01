@@ -179,7 +179,7 @@ int poolwr_fd = -1;
 int poolrd_fd = -1;
 int level = -1;
 int implicit_jobs = 1;
-int force = 0;
+int kflag, jflag, xflag, fflag;
 
 static void
 redo_ifcreate(char *target)
@@ -620,7 +620,7 @@ redo_ifchange(int targetc, char *targetv[])
 
 	// check all targets whether needing rebuild
 	for (targeti = 0; targeti < targetc; targeti++)
-		skip[targeti] = force > 0 ? 0 : check_deps(targetv[targeti]);
+		skip[targeti] = fflag > 0 ? 0 : check_deps(targetv[targeti]);
 	
 	targeti = 0;
 	while (1) {
@@ -720,11 +720,7 @@ record_deps(int targetc, char *targetv[])
 int
 main(int argc, char *argv[])
 {
-	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-	if (dir_fd < 0) {
-		perror("dir open");
-		exit(-1);
-	}
+	int opt;
 
 	dep_fd = envfd("REDO_DEP_FD");
 	printf("DEPFD %d\n", dep_fd);
@@ -733,7 +729,9 @@ main(int argc, char *argv[])
 	if (level < 0)
 		level = 0;
 
-	force = envfd("REDO_FORCE");
+	fflag = envfd("REDO_FORCE");
+	kflag = envfd("REDO_KEEP_GOING");
+	xflag = envfd("REDO_TRACE");
 
 	char *program;
 	if ((program = strrchr(argv[0], '/')))
@@ -743,17 +741,60 @@ main(int argc, char *argv[])
 
 	// XXX argument parsing: -k -jN -x/-v -f -C
 
+        while ((opt = getopt(argc, argv, "+kj:xfC:")) != -1) {
+                switch (opt) {
+                case 'k':
+                        kflag = 1;
+			setenvfd("REDO_KEEP_GOING", 1);
+                        break;
+                case 'x':
+                        xflag = 1;
+			setenvfd("REDO_TRACE", 1);
+                        break;
+                case 'f':
+                        fflag = 1;
+			setenvfd("REDO_FORCE", 1);
+                        break;
+                case 'j':
+                        setenv("JOBS", optarg, 1);
+                        break;
+                case 'C':
+			if (chdir(optarg) < 0) {
+				perror("chdir");
+				exit(-1);
+			}
+			break;
+                default:
+			fprintf(stderr, "usage: %s [-kfx] [-jN] [-Cdir] [TARGETS]\n", program);
+                        exit(1);
+                }
+        }
+        argc -= optind;
+        argv += optind;
+
+        if (argc == 0) {
+		argc = 1;
+		char *all = "all";
+		argv[0] = all;   // XXX safe?
+        }
+
+	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if (dir_fd < 0) {
+		perror("dir open");
+		exit(-1);
+	}
+
 	if (strcmp(program, "redo") == 0) {
-		force = 1;
-		redo_ifchange(argc-1, argv+1);
+		fflag = 1;
+		redo_ifchange(argc, argv);
 		procure("REDO");
 	} else if (strcmp(program, "redo-ifchange") == 0) {
-		redo_ifchange(argc-1, argv+1);
-		record_deps(argc-1, argv+1);
+		redo_ifchange(argc, argv);
+		record_deps(argc, argv);
 		procure("REDO-IFCHANGE");
 	} else if (strcmp(program, "redo-ifcreate") == 0) {
 		int i;
-		for (i = 1; i < argc; i++)
+		for (i = 0; i < argc; i++)
 			redo_ifcreate(argv[i]);
 	} else if (strcmp(program, "redo-always") == 0) {
 		dprintf(dep_fd, "!\n");
