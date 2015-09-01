@@ -10,21 +10,19 @@ current bugs:
   test job server properly
 */
 
-#include <poll.h>
-#include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <stdarg.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+
 #include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 // ---------------------------------------------------------------------------
 // from musl/src/crypt/crypt_sha256.c
@@ -532,7 +530,7 @@ djb-style default.o.do:
 }
 
 static int
-try_procure(char *target)
+try_procure()
 {
 	if (implicit_jobs > 0) {
 		implicit_jobs--;
@@ -555,7 +553,7 @@ try_procure(char *target)
 }
 
 static int
-procure(char *target)
+procure()
 {
 	if (implicit_jobs > 0) {
 		implicit_jobs--;
@@ -620,7 +618,7 @@ redo_ifchange(int targetc, char *targetv[])
 				continue;
 			}
 
-			if (try_procure(target)) {
+			if (try_procure()) {
 				procured = 1;
 				targeti++;
 				run_script(target, implicit_jobs >= 0);
@@ -757,11 +755,11 @@ main(int argc, char *argv[])
 	if (strcmp(program, "redo") == 0) {
 		fflag = 1;
 		redo_ifchange(argc, argv);
-		procure("REDO");
+		procure();
 	} else if (strcmp(program, "redo-ifchange") == 0) {
 		redo_ifchange(argc, argv);
 		record_deps(argc, argv);
-		procure("REDO-IFCHANGE");
+		procure();
 	} else if (strcmp(program, "redo-ifcreate") == 0) {
 		int i;
 		for (i = 0; i < argc; i++)
