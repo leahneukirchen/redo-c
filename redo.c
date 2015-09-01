@@ -9,15 +9,8 @@ current bugs:
 
   exts: prepend ./? --- execl should be good enough
 
-  no directory handling at all
-    - fiddle .dep file lookup
-    - chdir to basename for each argument
-
   test job server properly
 */
-
-// XXX drop asprintf
-#define _GNU_SOURCE 
 
 #include <poll.h>
 #include <stdio.h>
@@ -717,6 +710,7 @@ record_deps(int targetc, char *targetv[])
 	for (targeti = 0; targeti < targetc; targeti++) {
 		int fd = open(targetv[targeti], O_RDONLY);
 		char *hash = hashfile(fd);
+		// here, we write out the unmodified target name!
 		dprintf(dep_fd, "=%s!%s\n", hash, targetv[targeti]);
 		close(fd);
 	}
@@ -740,8 +734,11 @@ main(int argc, char *argv[])
 
 	force = envfd("REDO_FORCE");
 
-	// XXX check if this is safe...
-	char *program = basename(argv[0]);
+	char *program;
+	if ((program = strrchr(argv[0], '/')))
+		program++;
+	else
+		program = argv[0];
 
 	// XXX argument parsing: -k -jN -x/-v -f -C
 
