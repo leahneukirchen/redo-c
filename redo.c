@@ -229,8 +229,8 @@ find_dofile(char *target)
 	*u++ = '/';
 	*u = 0;
 
-	struct stat st = {0};
-	struct stat ost = {0};
+	struct stat st, ost;
+	st.st_dev = ost.st_dev = st.st_ino = ost.st_ino = 0;
 	
 	while (1) {
 		ost = st;
