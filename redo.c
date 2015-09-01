@@ -468,18 +468,18 @@ run_script(char *target, int implicit)
 
 	target = targetchdir(target);
 
-	dofile = find_dofile(target);
-	if (!dofile) {
-		fprintf(stderr, "no dofile for %s.\n", target);
-		exit(1);
-	}
-
 	dep_fd = mkstemp(temp_depfile);
 
 	fd = mkstemp(temp_target);
 	close(fd);
 
 	// TODO locking to detect parallel jobs building same target?
+
+	dofile = find_dofile(target);
+	if (!dofile) {
+		fprintf(stderr, "no dofile for %s.\n", target);
+		exit(1);
+	}
 
 	fd = open(dofile, O_RDONLY);
 	dprintf(dep_fd, "=%s %s\n", hashfile(fd), dofile);
