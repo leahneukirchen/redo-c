@@ -1,5 +1,5 @@
 /*
-##% cc -g -Os -Wall -Wextra -o $STEM $FILE
+##% cc -g -Os -Wall -Wextra -Wwrite-strings -o $STEM $FILE
 */
 
 /*
@@ -184,7 +184,7 @@ redo_ifcreate(char *target)
 }
 
 static char *
-check_dofile(char *fmt, ...)
+check_dofile(const char *fmt, ...)
 {
 	char dofile[1024];
 
@@ -258,7 +258,7 @@ find_dofile(char *target)
 }
 
 static int
-envfd(char *name)
+envfd(const char *name)
 {
 	long fd;
 
@@ -274,7 +274,7 @@ envfd(char *name)
 }
 
 static void
-setenvfd(char *name, int i)
+setenvfd(const char *name, int i)
 {
 	char buf[16];
 	snprintf(buf, sizeof buf, "%d", i);
@@ -742,7 +742,7 @@ main(int argc, char *argv[])
 
         if (argc == 0) {
 		argc = 1;
-		char *all = "all";
+		char *all = (char *) "all";
 		argv[0] = all;   // XXX safe?
         }
 
