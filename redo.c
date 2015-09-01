@@ -393,6 +393,14 @@ check_deps(char *target)
 	return ok;
 }
 
+void
+vacate(int implicit) {
+	if (implicit)
+		implicit_jobs++;
+	else
+		write(poolwr_fd, "\0", 1);
+}
+
 struct job {
 	struct job *next;
 	pid_t pid;
@@ -470,6 +478,7 @@ run_script(char *target, int implicit)
 	pid = fork();
 	if (pid < 0) {
 		perror("fork");
+		vacate(implicit);
 		exit(-1);
 	} else if (pid == 0) { // child
 /*
@@ -501,6 +510,7 @@ djb-style default.o.do:
 		else
 			execl(dofile,
 			    dofile, target, basename, temp_target, (char *) 0);
+		vacate(implicit);
 		exit(-1);
 	} else {
 		close(dep_fd);
@@ -519,8 +529,6 @@ djb-style default.o.do:
 
 		return job;
 	}
-
-	// XXX vacate job when error happened before
 }
 
 static int
@@ -572,7 +580,7 @@ create_pool()
 			poolwr_fd = fds[1];
 			
 			for (i = 0; i < jobs-1; i++)
-				write(poolwr_fd, "\0", 1);
+				vacate(0);
 
 			setenvfd("REDO_RD_FD", poolrd_fd);
 			setenvfd("REDO_WR_FD", poolwr_fd);
@@ -656,11 +664,8 @@ redo_ifchange(int targetc, char *targetv[])
 				rename(job->temp_target, target);
 			}
 		}
-		
-		if (job->implicit)
-			implicit_jobs++;
-		else
-			write(poolwr_fd, "\0", 1);
+
+		vacate(job->implicit);
 		
 		if (kflag < 0 && status > 0) {
 			printf("failed with status %d\n", status);
