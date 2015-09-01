@@ -180,6 +180,7 @@ static void sha256_update(struct sha256 *s, const void *m, unsigned long len)
 
 // ----------------------------------------------------------------------
 
+int dir_fd = -1;
 int dep_fd = -1;
 int poolwr_fd = -1;
 int poolrd_fd = -1;
@@ -203,6 +204,8 @@ check_dofile(char *fmt, ...)
 	vsnprintf(dofile, sizeof dofile, fmt, ap);
 	va_end(ap);
 
+	printf("CDOF %s\n", dofile);
+
 	if (access (dofile, F_OK) == 0) {
 		return strdup(dofile);
 	} else {
@@ -214,33 +217,56 @@ check_dofile(char *fmt, ...)
 /*
 dir/base.a.b
        will look for dir/base.a.b.do,
-       dir/default.a.b.do, dir/default.b.do, dir/default.do, default.a.b.do,
-       default.b.do, and default.do.
-
-	// TODO: also traverse up directory
-17:47:24    <@dalias> then yeah, just newfd=openat(dirfd, "..", O_RDONLY)
-17:47:47    <@dalias> stat both of them and see if they have the same
-         (st_dev,st_ino) pair
-
+       dir/default.a.b.do, dir/default.b.do, dir/default.do,
+       default.a.b.do, default.b.do, and default.do.
+this function assumes no / in target
 */
 static char *
 find_dofile(char *target)
 {
 	char *dofile;
+	char updir[1024];
+	char *u = updir;
 
-	dofile = check_dofile("%s.do", target);
-	if (dofile) return dofile;
+	dofile = check_dofile("./%s.do", target);
+	if (dofile)
+		return dofile;
+
+	*u++ = '.';
+	*u++ = '/';
+	*u = 0;
+
+	struct stat st = {0};
+	struct stat ost = {0};
 	
-	char *s = target;
-        
-        while (*s) {
-		if (*s++ == '.') {
-			dofile = check_dofile("default.%s.do", s);
-			if (dofile) return dofile;
-		}
-        }
+	while (1) {
+		ost = st;
 
-	return check_dofile("default.do");
+		if (stat(updir, &st) < 0)
+			return 0;;
+		if (ost.st_dev == st.st_dev && ost.st_ino == st.st_ino)
+			break;  // reached root dir, .. = .
+
+		char *s = target;
+		while (*s) {
+			if (*s++ == '.') {
+				dofile = check_dofile("%sdefault.%s.do", updir, s);
+				if (dofile)
+					return dofile;
+			}
+		}
+
+		dofile = check_dofile("%sdefault.do", updir);
+		if (dofile)
+			return dofile;
+
+		*u++ = '.';
+		*u++ = '.';
+		*u++ = '/';
+		*u = 0;
+	}
+
+	return 0;
 }
 
 static int
@@ -299,6 +325,25 @@ hashfile(int fd)
 	return asciihash;
 }
 
+static char *
+targetchdir(char *target) {
+	char *base = strrchr(target, '/');
+	if (base) {
+		int fd;
+		*base = 0;
+		fd = openat(dir_fd, target, O_RDONLY | O_DIRECTORY);
+		printf("CHDIR %s\n", target);
+		*base = '/';
+		fchdir(fd);
+		close(fd);
+		return base+1;
+	} else {
+		fchdir(dir_fd);
+		printf("CHDIR [.]\n");
+		return target;
+	}
+}
+
 static int
 check_deps(char *target)
 {
@@ -309,13 +354,15 @@ check_deps(char *target)
 
 	printf("checkdeps %s\n", target);
 
+	target = targetchdir(target);
+
 	if (access(target, F_OK) != 0)
 		return 0;
 
 	asprintf(&depfile, ".%s.dep", target);
 	f = fopen(depfile, "r");
 	if (!f)
-		ok = 0;
+		return 0;
 
 	while (ok && !feof(f)) {
 		char line[4096];
@@ -402,6 +449,9 @@ find_job(pid_t pid)
 static struct job *
 run_script(char *target, int implicit)
 {
+	char *orig_target = target;
+	target = targetchdir(target);
+
 	char *depfile;
 	asprintf(&depfile, ".%s.dep", target);
 	
@@ -478,7 +528,7 @@ djb-style default.o.do:
 		if (!job)
 			exit(-1);
 		job->pid = pid;
-		job->target = target;
+		job->target = orig_target;
 		job->temp_depfile = strdup(temp_depfile);
 		job->temp_target = strdup(temp_target);
 		job->implicit = implicit;
@@ -628,15 +678,18 @@ redo_ifchange(int targetc, char *targetv[])
 			remove(job->temp_target);
 		} else {
 			char *depfile;
-			asprintf(&depfile, ".%s.dep", job->target);
+
+			char *target = targetchdir(job->target);
+
+			asprintf(&depfile, ".%s.dep", target);
 			printf("renamed %s to %s.\n", job->temp_depfile, depfile);
 			rename(job->temp_depfile, depfile);
 
 			struct stat st;
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
-				printf("renamed %s to %s.\n", job->temp_target, job->target);
-				rename(job->temp_target, job->target);
+				printf("renamed %s to %s.\n", job->temp_target, target);
+				rename(job->temp_target, target);
 			}
 		}
 		
@@ -672,6 +725,12 @@ record_deps(int targetc, char *targetv[])
 int
 main(int argc, char *argv[])
 {
+	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if (dir_fd < 0) {
+		perror("dir open");
+		exit(-1);
+	}
+
 	dep_fd = envfd("REDO_DEP_FD");
 	printf("DEPFD %d\n", dep_fd);
 
