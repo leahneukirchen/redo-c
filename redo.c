@@ -682,6 +682,8 @@ redo_ifchange(int targetc, char *targetv[])
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
 				rename(job->temp_target, target);
+			} else {
+				remove(job->temp_target);
 			}
 		}
 
