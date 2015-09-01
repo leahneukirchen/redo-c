@@ -508,13 +508,12 @@ djb-style default.o.do:
 
 		system("ls -l /proc/$$/fd");
 
-		// TODO -x optional
 		if (shellwrap)
-			execl("/bin/sh", "/bin/sh", "-e", "-x", dofile,
-			    target, basename, temp_target, (char *) 0);
+			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
+			    dofile, target, basename, temp_target, (char *) 0);
 		else
-			execl(dofile, dofile,
-			    target, basename, temp_target, (char *) 0);
+			execl(dofile,
+			    dofile, target, basename, temp_target, (char *) 0);
 		exit(-1);
 	} else {
 		close(dep_fd);
