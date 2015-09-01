@@ -337,6 +337,12 @@ targetchdir(char *target) {
 	}
 }
 
+static char * targetdep(char *target) {
+	static char dep[1024];
+	snprintf(dep, sizeof dep, ".%s.dep", target);
+	return dep;
+}
+
 static int
 check_deps(char *target)
 {
@@ -352,7 +358,7 @@ check_deps(char *target)
 	if (access(target, F_OK) != 0)
 		return 0;
 
-	asprintf(&depfile, ".%s.dep", target);
+	depfile = targetdep(target);
 	f = fopen(depfile, "r");
 	if (!f)
 		return 0;
@@ -445,9 +451,6 @@ run_script(char *target, int implicit)
 	char *orig_target = target;
 	target = targetchdir(target);
 
-	char *depfile;
-	asprintf(&depfile, ".%s.dep", target);
-	
 	char temp_depfile[] = ".dep.XXXXXX";
 	int old_dep_fd = dep_fd;
 	dep_fd = mkstemp(temp_depfile);
@@ -670,11 +673,9 @@ redo_ifchange(int targetc, char *targetv[])
 			remove(job->temp_depfile);
 			remove(job->temp_target);
 		} else {
-			char *depfile;
-
 			char *target = targetchdir(job->target);
+			char *depfile = targetdep(target);
 
-			asprintf(&depfile, ".%s.dep", target);
 			printf("renamed %s to %s.\n", job->temp_depfile, depfile);
 			rename(job->temp_depfile, depfile);
 
