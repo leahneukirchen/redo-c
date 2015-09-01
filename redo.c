@@ -290,12 +290,13 @@ static char *
 hashfile(int fd)
 {
 	static char hex[16] = "0123456789abcdef";
+	static char asciihash[65];
 
 	struct sha256 ctx;
 	off_t off = 0;
 	char buf[4096];
+	char *a;
 	unsigned char hash[32];
-	static char asciihash[65];
 	int i;
 	ssize_t r;
 
@@ -308,12 +309,11 @@ hashfile(int fd)
 	
 	sha256_sum(&ctx, hash);
 	
-	for (i = 0; i < 32; i++) {
-		// TODO *asciihash++ = ?
-		asciihash[2*i] = hex[hash[i] / 16];
-		asciihash[2*i+1] = hex[hash[i] % 16];
+	for (i = 0, a = asciihash; i < 32; i++) {
+		*a++ = hex[hash[i] / 16];
+		*a++ = hex[hash[i] % 16];
 	}
-	asciihash[64] = 0;
+	*a = 0;
 
 	return asciihash;
 }
