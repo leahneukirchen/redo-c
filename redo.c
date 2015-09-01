@@ -1,6 +1,10 @@
 /* An implementation of the redo build system
    in portable C with zero dependencies
 
+   http://cr.yp.to/redo.html
+   http://homepage.ntlworld.com/jonathan.deboynepollard/FGA/introduction-to-redo.html
+   https://github.com/apenwarr/redo/blob/master/README.md
+
    To the extent possible under law,
    Christian Neukirchen <chneukirchen@gmail.com>
    has waived all copyright and related or neighboring rights to this work.
