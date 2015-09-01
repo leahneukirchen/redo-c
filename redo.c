@@ -604,6 +604,13 @@ create_pool()
 	}
 }
 
+static int
+sourcefile(char *target)
+{
+	char *depfile = targetdep(target);
+	return access(target, F_OK) == 0 && access(depfile, F_OK) != 0;
+}
+
 static void
 redo_ifchange(int targetc, char *targetv[])
 {
@@ -628,7 +635,7 @@ redo_ifchange(int targetc, char *targetv[])
 		if (targeti < targetc) {
 			char *target = targetv[targeti];
 
-			if (skip[targeti]) {
+			if (skip[targeti] || sourcefile(target)) {
 				targeti++;
 				continue;
 			}
