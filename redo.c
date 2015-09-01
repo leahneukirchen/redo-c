@@ -742,8 +742,7 @@ main(int argc, char *argv[])
 
         if (argc == 0) {
 		argc = 1;
-		char *all = (char *) "all";
-		argv[0] = all;   // XXX safe?
+		argv[0] = (char *) "all";   // XXX safe?
         }
 
 	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
