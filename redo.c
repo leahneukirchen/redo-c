@@ -687,14 +687,13 @@ redo_ifchange(int targetc, char *targetv[])
 			}
 		}
 		
-		printf("ji: %d\n", job->implicit);
+		printf("ji: %d %d\n", job->implicit, kflag);
 		if (job->implicit)
 			implicit_jobs++;
 		else
 			write(poolwr_fd, "\0", 1);
 		
-		// TODO: keep going on -k
-		if (status > 0) {
+		if (kflag < 0 && status > 0) {
 			printf("failed with status %d\n", status);
 			exit(status);
 		}
