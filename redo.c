@@ -760,7 +760,7 @@ int
 main(int argc, char *argv[])
 {
 	char *program;
-	int opt;
+	int opt, i;
 
 	dep_fd = envfd("REDO_DEP_FD");
 
@@ -833,13 +833,13 @@ main(int argc, char *argv[])
 		record_deps(argc, argv);
 		procure();
 	} else if (strcmp(program, "redo-ifcreate") == 0) {
-		int i;
 		for (i = 0; i < argc; i++)
 			redo_ifcreate(argv[i]);
 	} else if (strcmp(program, "redo-always") == 0) {
 		dprintf(dep_fd, "!\n");
 	} else if (strcmp(program, "redo-hash") == 0) {
-		printf("%s\n", hashfile(0));
+		for (i = 0; i < argc; i++)
+			write_dep(1, argv[i]);
 	} else {
 		fprintf(stderr, "not implemented %s\n", program);
 		exit(-1);
