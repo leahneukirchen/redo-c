@@ -4,6 +4,7 @@
    http://cr.yp.to/redo.html
    http://homepage.ntlworld.com/jonathan.deboynepollard/FGA/introduction-to-redo.html
    https://github.com/apenwarr/redo/blob/master/README.md
+   http://news.dieweltistgarnichtso.net/bin/redo-sh.html
 
    To the extent possible under law,
    Christian Neukirchen <chneukirchen@gmail.com>
