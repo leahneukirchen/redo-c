@@ -485,6 +485,16 @@ find_job(pid_t pid)
 	return 0;
 }
 
+static int
+write_dep(int dep_fd, char *file) {
+	int fd = open(file, O_RDONLY);
+	if (fd < 0)
+		return 0;
+	dprintf(dep_fd, "=%s %s %s\n", hashfile(fd), datefile(fd), file);
+	close(fd);
+	return 0;
+}
+
 static struct job *
 run_script(char *target, int implicit)
 {
@@ -492,7 +502,7 @@ run_script(char *target, int implicit)
 	char temp_target[] = ".target.XXXXXX";
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
-	int fd, target_fd;
+	int target_fd;
 	char *dofile;
 	pid_t pid;
 
@@ -510,9 +520,7 @@ run_script(char *target, int implicit)
 		exit(1);
 	}
 
-	fd = open(dofile, O_RDONLY);
-	dprintf(dep_fd, "=%s %s %s\n", hashfile(fd), datefile(fd), dofile);
-	close(fd);
+	write_dep(dep_fd, dofile);
 	
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
 
@@ -706,15 +714,12 @@ redo_ifchange(int targetc, char *targetv[])
 
 			if (stat(job->temp_target, &st) == 0 &&
 			    st.st_size > 0) {
-				int dfd, tfd;
-
-				dfd = open(job->temp_depfile, O_WRONLY|O_APPEND);
-				tfd = open(job->temp_target, O_RDONLY);
-				dprintf(dfd, "=%s %s@%s\n", hashfile(tfd), datefile(tfd), target);
-				close(dfd);
-				close(tfd);
+				int dfd;
 
 				rename(job->temp_target, target);
+				dfd = open(job->temp_depfile, O_WRONLY|O_APPEND);
+				write_dep(dfd, target);
+				close(dfd);
 			} else {
 				remove(job->temp_target);
 			}
@@ -746,7 +751,7 @@ record_deps(int targetc, char *targetv[])
 		if (fd < 0)
 			continue;
 		// here, we write out the unmodified target name!
-		dprintf(dep_fd, "=%s %s!%s\n", hashfile(fd), datefile(fd), targetv[targeti]);
+		write_dep(dep_fd, targetv[targeti]);
 		close(fd);
 	}
 }
