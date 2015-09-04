@@ -346,16 +346,24 @@ targetchdir(char *target) {
 	}
 }
 
-static char * targetdep(char *target) {
+static char *
+targetdep(char *target) {
 	static char dep[1024];
 	snprintf(dep, sizeof dep, ".%s.dep", target);
 	return dep;
 }
 
 static int
+sourcefile(char *target)
+{
+	target = targetchdir(target);
+	return access(target, F_OK) == 0 && access(targetdep(target), F_OK) != 0;
+}
+
+static int
 check_deps(char *target)
 {
-	char *depfile;
+	char *depfile, *filename;
 	FILE *f;
 	int ok = 1;
 	int fd;
@@ -380,7 +388,8 @@ check_deps(char *target)
 					ok = 0;
 				break;
 			case '=':  // compare hash
-				fd = open(line + 1 + 64 + 1, O_RDONLY);
+				filename = line + 1 + 64 + 1;
+				fd = open(filename, O_RDONLY);
 				if (fd < 0) {
 					ok = 0;
 				} else {
@@ -389,6 +398,10 @@ check_deps(char *target)
 						ok = 0;
 					close(fd);
 				}
+				// hash is good, recurse into dependencies
+				if (ok && strcmp(target, filename) != 0 &&
+				    !sourcefile(filename))
+					ok = check_deps(filename);
 				break;
 			case '!':  // always rebuild
 			default:  // dep file broken, lets recreate it
@@ -603,13 +616,6 @@ create_pool()
 			poolwr_fd = -1;
 		}
 	}
-}
-
-static int
-sourcefile(char *target)
-{
-	char *depfile = targetdep(target);
-	return access(target, F_OK) == 0 && access(depfile, F_OK) != 0;
 }
 
 static void
