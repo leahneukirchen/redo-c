@@ -191,7 +191,7 @@ int poolwr_fd = -1;
 int poolrd_fd = -1;
 int level = -1;
 int implicit_jobs = 1;
-int kflag, jflag, xflag, fflag;
+int kflag, jflag, xflag, fflag, sflag;
 
 static void
 redo_ifcreate(char *target)
@@ -476,7 +476,7 @@ run_script(char *target, int implicit)
 	char temp_target[] = ".target.XXXXXX";
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
-	int fd;
+	int fd, target_fd;
 	char *dofile;
 	pid_t pid;
 
@@ -484,8 +484,7 @@ run_script(char *target, int implicit)
 
 	dep_fd = mkstemp(temp_depfile);
 
-	fd = mkstemp(temp_target);
-	close(fd);
+	target_fd = mkstemp(temp_target);
 
 	// TODO locking to detect parallel jobs building same target?
 
@@ -529,6 +528,10 @@ djb-style default.o.do:
 		close(old_dep_fd);
 		setenvfd("REDO_DEP_FD", dep_fd);
 		setenvfd("REDO_LEVEL", level + 1);
+		if (sflag > 0)
+			dup2(target_fd, 1);
+		else
+			close(target_fd);
 
 		if (access (dofile, X_OK) != 0)  // run -x files with /bin/sh
 			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
@@ -543,6 +546,7 @@ djb-style default.o.do:
 		if (!job)
 			exit(-1);
 
+		close(target_fd);
 		close(dep_fd);
 		dep_fd = old_dep_fd;
 
@@ -746,13 +750,14 @@ main(int argc, char *argv[])
 	fflag = envfd("REDO_FORCE");
 	kflag = envfd("REDO_KEEP_GOING");
 	xflag = envfd("REDO_TRACE");
+	sflag = envfd("REDO_STDOUT");
 
 	if ((program = strrchr(argv[0], '/')))
 		program++;
 	else
 		program = argv[0];
 
-        while ((opt = getopt(argc, argv, "+kxfj:C:")) != -1) {
+        while ((opt = getopt(argc, argv, "+kxfsj:C:")) != -1) {
                 switch (opt) {
                 case 'k':
                         kflag = 1;
@@ -766,6 +771,10 @@ main(int argc, char *argv[])
                         fflag = 1;
 			setenvfd("REDO_FORCE", 1);
                         break;
+                case 's':
+			sflag = 1;
+			setenvfd("REDO_STDOUT", 1);
+			break;
                 case 'j':
                         setenv("JOBS", optarg, 1);
                         break;
@@ -776,7 +785,7 @@ main(int argc, char *argv[])
 			}
 			break;
                 default:
-			fprintf(stderr, "usage: %s [-kfx] [-jN] [-Cdir] [TARGETS...]\n", program);
+			fprintf(stderr, "usage: %s [-kfsx] [-jN] [-Cdir] [TARGETS...]\n", program);
                         exit(1);
                 }
         }
