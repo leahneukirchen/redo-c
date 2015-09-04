@@ -32,6 +32,7 @@ todo:
 
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <poll.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -330,6 +331,18 @@ hashfile(int fd)
 }
 
 static char *
+datefile(int fd)
+{
+	static char hexdate[17];
+	struct stat st;
+
+	fstat(fd, &st);
+	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, st.st_ctime);
+
+	return hexdate;
+}
+
+static char *
 targetchdir(char *target) {
 	char *base = strrchr(target, '/');
 	if (base) {
@@ -363,7 +376,7 @@ sourcefile(char *target)
 static int
 check_deps(char *target)
 {
-	char *depfile, *filename;
+	char *depfile;
 	FILE *f;
 	int ok = 1;
 	int fd;
@@ -380,6 +393,10 @@ check_deps(char *target)
 
 	while (ok && !feof(f)) {
 		char line[4096];
+		char *hash = line + 1;
+		char *timestamp = line + 1 + 64 + 1;
+		char *filename = line + 1 + 64 + 1 + 16 + 1;
+
 		if (fgets(line, sizeof line, f)) {
 			line[strlen(line)-1] = 0; // strip \n
 			switch (line[0]) {
@@ -388,13 +405,12 @@ check_deps(char *target)
 					ok = 0;
 				break;
 			case '=':  // compare hash
-				filename = line + 1 + 64 + 1;
 				fd = open(filename, O_RDONLY);
 				if (fd < 0) {
 					ok = 0;
 				} else {
-					char *hash = hashfile(fd);
-					if (strncmp(line+1, hash, 64) != 0)
+					if (strncmp(timestamp, datefile(fd), 16) != 0 &&
+					    strncmp(hash, hashfile(fd), 64) != 0)
 						ok = 0;
 					close(fd);
 				}
@@ -495,7 +511,7 @@ run_script(char *target, int implicit)
 	}
 
 	fd = open(dofile, O_RDONLY);
-	dprintf(dep_fd, "=%s %s\n", hashfile(fd), dofile);
+	dprintf(dep_fd, "=%s %s %s\n", hashfile(fd), datefile(fd), dofile);
 	close(fd);
 	
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
@@ -694,7 +710,7 @@ redo_ifchange(int targetc, char *targetv[])
 
 				dfd = open(job->temp_depfile, O_WRONLY|O_APPEND);
 				tfd = open(job->temp_target, O_RDONLY);
-				dprintf(dfd, "=%s@%s\n", hashfile(tfd), target);
+				dprintf(dfd, "=%s %s@%s\n", hashfile(tfd), datefile(tfd), target);
 				close(dfd);
 				close(tfd);
 
@@ -730,7 +746,7 @@ record_deps(int targetc, char *targetv[])
 		if (fd < 0)
 			continue;
 		// here, we write out the unmodified target name!
-		dprintf(dep_fd, "=%s!%s\n", hashfile(fd), targetv[targeti]);
+		dprintf(dep_fd, "=%s %s!%s\n", hashfile(fd), datefile(fd), targetv[targeti]);
 		close(fd);
 	}
 }
