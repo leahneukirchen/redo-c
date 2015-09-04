@@ -46,18 +46,18 @@ todo:
 /* public domain sha256 implementation based on fips180-3 */
 
 struct sha256 {
-	uint64_t len;    /* processed message length */
-	uint32_t h[8];   /* hash state */
+	uint64_t len;	 /* processed message length */
+	uint32_t h[8];	 /* hash state */
 	uint8_t buf[64]; /* message block buffer */
 };
 
 static uint32_t ror(uint32_t n, int k) { return (n >> k) | (n << (32-k)); }
 #define Ch(x,y,z)  (z ^ (x & (y ^ z)))
 #define Maj(x,y,z) ((x & y) | (z & (x | y)))
-#define S0(x)      (ror(x,2) ^ ror(x,13) ^ ror(x,22))
-#define S1(x)      (ror(x,6) ^ ror(x,11) ^ ror(x,25))
-#define R0(x)      (ror(x,7) ^ ror(x,18) ^ (x>>3))
-#define R1(x)      (ror(x,17) ^ ror(x,19) ^ (x>>10))
+#define S0(x)	   (ror(x,2) ^ ror(x,13) ^ ror(x,22))
+#define S1(x)	   (ror(x,6) ^ ror(x,11) ^ ror(x,25))
+#define R0(x)	   (ror(x,7) ^ ror(x,18) ^ (x>>3))
+#define R1(x)	   (ror(x,17) ^ ror(x,19) ^ (x>>10))
 
 static const uint32_t K[64] = {
 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -249,7 +249,7 @@ find_dofile(char *target)
 		if (stat(updir, &st) < 0)
 			return 0;
 		if (ost.st_dev == st.st_dev && ost.st_ino == st.st_ino)
-			break;  // reached root dir, .. = .
+			break;	// reached root dir, .. = .
 
 		s = target;
 		while (*s) {
@@ -508,13 +508,13 @@ run_script(char *target, int implicit)
 	} else if (pid == 0) { // child
 /*
 djb-style default.o.do:
-   $1      foo.o
-   $2      foo
-   $3      whatever.tmp
+   $1	   foo.o
+   $2	   foo
+   $3	   whatever.tmp
 
-   $1      all
-   $2      all (!!)
-   $3      whatever.tmp
+   $1	   all
+   $2	   all (!!)
+   $3	   whatever.tmp
 */
 		int i;
 
@@ -569,13 +569,13 @@ try_procure()
 		implicit_jobs--;
 		return 1;
 	} else {
-                struct pollfd p;
+		struct pollfd p;
 
 		if (poolrd_fd < 0)
 			return 0;
 
-                p.fd = poolrd_fd;
-                p.events = POLLIN;
+		p.fd = poolrd_fd;
+		p.events = POLLIN;
 
 		if (poll(&p, 1, 0) > 0 && p.revents & POLLIN) {
 			char buf[1];
@@ -667,7 +667,7 @@ redo_ifchange(int targetc, char *targetv[])
 			if (errno == ECHILD && targeti < targetc)
 				continue;   // no child yet???
 			else
-				break;   // no child left
+				break;	 // no child left
 		}
 
 		if (WIFEXITED(status))
@@ -757,45 +757,45 @@ main(int argc, char *argv[])
 	else
 		program = argv[0];
 
-        while ((opt = getopt(argc, argv, "+kxfsj:C:")) != -1) {
-                switch (opt) {
-                case 'k':
-                        kflag = 1;
+	while ((opt = getopt(argc, argv, "+kxfsj:C:")) != -1) {
+		switch (opt) {
+		case 'k':
+			kflag = 1;
 			setenvfd("REDO_KEEP_GOING", 1);
-                        break;
-                case 'x':
-                        xflag = 1;
+			break;
+		case 'x':
+			xflag = 1;
 			setenvfd("REDO_TRACE", 1);
-                        break;
-                case 'f':
-                        fflag = 1;
+			break;
+		case 'f':
+			fflag = 1;
 			setenvfd("REDO_FORCE", 1);
-                        break;
-                case 's':
+			break;
+		case 's':
 			sflag = 1;
 			setenvfd("REDO_STDOUT", 1);
 			break;
-                case 'j':
-                        setenv("JOBS", optarg, 1);
-                        break;
-                case 'C':
+		case 'j':
+			setenv("JOBS", optarg, 1);
+			break;
+		case 'C':
 			if (chdir(optarg) < 0) {
 				perror("chdir");
 				exit(-1);
 			}
 			break;
-                default:
+		default:
 			fprintf(stderr, "usage: %s [-kfsx] [-jN] [-Cdir] [TARGETS...]\n", program);
-                        exit(1);
-                }
-        }
-        argc -= optind;
-        argv += optind;
+			exit(1);
+		}
+	}
+	argc -= optind;
+	argv += optind;
 
-        if (argc == 0) {
+	if (argc == 0) {
 		argc = 1;
 		argv[0] = (char *) "all";   // XXX safe?
-        }
+	}
 
 	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
 	if (dir_fd < 0) {
