@@ -499,7 +499,7 @@ run_script(char *target, int implicit)
 	dprintf(dep_fd, "=%s %s\n", hashfile(fd), dofile);
 	close(fd);
 	
-	printf("redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
+	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
 
 	pid = fork();
 	if (pid < 0) {
