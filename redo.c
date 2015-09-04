@@ -362,7 +362,7 @@ targetchdir(char *target) {
 static char *
 targetdep(char *target) {
 	static char dep[1024];
-	snprintf(dep, sizeof dep, ".%s.dep", target);
+	snprintf(dep, sizeof dep, ".dep.%s", target);
 	return dep;
 }
 
@@ -498,7 +498,7 @@ write_dep(int dep_fd, char *file) {
 static struct job *
 run_script(char *target, int implicit)
 {
-	char temp_depfile[] = ".dep.XXXXXX";
+	char temp_depfile[] = ".depend.XXXXXX";
 	char temp_target[] = ".target.XXXXXX";
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
