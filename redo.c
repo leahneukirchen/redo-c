@@ -621,7 +621,8 @@ djb-style default.o.do:
 			basename[i--] = 0;
 		}
 
-		close(old_dep_fd);
+		if (old_dep_fd > 0)
+			close(old_dep_fd);
 		setenvfd("REDO_DEP_FD", dep_fd);
 		setenvfd("REDO_LEVEL", level + 1);
 		if (sflag > 0)
