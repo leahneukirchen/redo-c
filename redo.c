@@ -538,6 +538,33 @@ new_waitjob(int fd, int implicit)
 	return 0;
 }
 
+// dofile doesn't contain /
+// target can contain /
+static char *
+redo_basename(char *dofile, char *target)
+{
+	static char buf[PATH_MAX];
+	int stripext = 1;
+	char *s;
+
+	if (strncmp(dofile, "default.", 8) == 0)
+		for (stripext = -1, s = dofile; *s; s++)
+			if (*s == '.')
+				stripext++;
+
+	strncpy(buf, target, sizeof buf);
+	while (stripext-- > 0) {
+		if (strchr(buf, '.')) {
+			char *e = strchr(buf, '\0');
+			while (*--e != '.')
+				*e = 0;
+			*e = 0;
+		}
+	}
+
+	return buf;
+}
+
 static void
 run_script(char *target, int implicit)
 {
@@ -613,14 +640,7 @@ djb-style default.o.do:
    $2	   all (!!)
    $3	   whatever.tmp
 */
-		int i;
-
-		char *basename = strdup(rel_target);
-		if (strchr(basename, '.')) {
-			for (i = strlen(basename)-1; i && basename[i] != '.'; i--)
-				basename[i] = 0;
-			basename[i--] = 0;
-		}
+		char *basename = redo_basename(dofile, rel_target);
 
 		if (old_dep_fd > 0)
 			close(old_dep_fd);
