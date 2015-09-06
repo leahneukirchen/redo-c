@@ -349,8 +349,15 @@ targetchdir(char *target) {
 		int fd;
 		*base = 0;
 		fd = openat(dir_fd, target, O_RDONLY | O_DIRECTORY);
+		if (fd < 0) {
+			perror("openat dir");
+			exit(111);
+		}
 		*base = '/';
-		fchdir(fd);
+		if (fchdir(fd) < 0) {
+			perror("chdir");
+			exit(111);
+		}
 		close(fd);
 		return base+1;
 	} else {
