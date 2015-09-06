@@ -26,6 +26,7 @@ todo:
   test job server properly
 */
 
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -203,7 +204,7 @@ redo_ifcreate(char *target)
 static char *
 check_dofile(const char *fmt, ...)
 {
-	static char dofile[1024];
+	static char dofile[PATH_MAX];
 
 	va_list ap;
 	va_start(ap, fmt);
@@ -229,7 +230,7 @@ this function assumes no / in target
 static char *
 find_dofile(char *target)
 {
-	char updir[1024];
+	char updir[PATH_MAX];
 	char *u = updir;
 	char *dofile, *s;
 	struct stat st, ost;
@@ -368,16 +369,16 @@ targetchdir(char *target) {
 
 static char *
 targetdep(char *target) {
-	static char dep[1024];
-	snprintf(dep, sizeof dep, ".dep.%s", target);
-	return dep;
+	static char buf[PATH_MAX];
+	snprintf(buf, sizeof buf, ".dep.%s", target);
+	return buf;
 }
 
 static char *
 targetlock(char *target) {
-	static char dep[1024];
-	snprintf(dep, sizeof dep, ".lock.%s", target);
-	return dep;
+	static char buf[PATH_MAX];
+	snprintf(buf, sizeof buf, ".lock.%s", target);
+	return buf;
 }
 
 static int
@@ -542,7 +543,7 @@ run_script(char *target, int implicit)
 {
 	char temp_depfile[] = ".depend.XXXXXX";
 	char temp_target_base[] = ".target.XXXXXX";
-	char temp_target[1024], rel_target[1024], cwd[1024];
+	char temp_target[PATH_MAX], rel_target[PATH_MAX], cwd[PATH_MAX];
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
 	int target_fd;
