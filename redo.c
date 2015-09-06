@@ -544,7 +544,7 @@ static char *
 redo_basename(char *dofile, char *target)
 {
 	static char buf[PATH_MAX];
-	int stripext = 1;
+	int stripext = 0;
 	char *s;
 
 	if (strncmp(dofile, "default.", 8) == 0)
