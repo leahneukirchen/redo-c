@@ -373,6 +373,13 @@ targetdep(char *target) {
 	return dep;
 }
 
+static char *
+targetlock(char *target) {
+	static char dep[1024];
+	snprintf(dep, sizeof dep, ".lock.%s", target);
+	return dep;
+}
+
 static int
 sourcefile(char *target)
 {
@@ -502,7 +509,35 @@ write_dep(int dep_fd, char *file) {
 	return 0;
 }
 
-static struct job *
+int
+new_waitjob(int fd, int implicit)
+{
+	pid_t pid;
+
+	pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		vacate(implicit);
+		exit(-1);
+	} else if (pid == 0) { // child
+		lockf(fd, F_LOCK, 0);
+		close(fd);
+		exit(0);
+	} else {
+		struct job *job = malloc (sizeof *job);
+		if (!job)
+			exit(-1);
+		job->target = 0;
+		job->pid = pid;
+		job->implicit = implicit;
+
+		insert_job(job);
+	}
+
+	return 0;
+}
+
+static void
 run_script(char *target, int implicit)
 {
 	char temp_depfile[] = ".depend.XXXXXX";
@@ -516,11 +551,22 @@ run_script(char *target, int implicit)
 
 	target = targetchdir(target);
 
+	int fd = open(targetlock(target), O_WRONLY | O_TRUNC | O_CREAT, 0666);
+	if (lockf(fd, F_TLOCK, 0) < 0) {
+		if (errno == EAGAIN) {
+			fprintf(stderr, "redo: %s already building, waiting.\n",
+			    orig_target);
+			new_waitjob(fd, implicit);
+			return;
+		} else {
+			perror("lockf");
+			exit(111);
+		}
+	}
+
 	dep_fd = mkstemp(temp_depfile);
 
 	target_fd = mkstemp(temp_target_base);
-
-	// TODO locking to detect parallel jobs building same target?
 
 	dofile = find_dofile(target);
 	if (!dofile) {
@@ -606,8 +652,6 @@ djb-style default.o.do:
 		job->implicit = implicit;
 
 		insert_job(job);
-
-		return job;
 	}
 }
 
@@ -729,27 +773,31 @@ redo_ifchange(int targetc, char *targetv[])
 		}
 		remove_job(job);
 
-		if (status > 0) {
-			remove(job->temp_depfile);
-			remove(job->temp_target);
-		} else {
-			struct stat st;
-			char *target = targetchdir(job->target);
-			char *depfile = targetdep(target);
-
-			if (stat(job->temp_target, &st) == 0 &&
-			    st.st_size > 0) {
-				int dfd;
-
-				rename(job->temp_target, target);
-				dfd = open(job->temp_depfile, O_WRONLY|O_APPEND);
-				write_dep(dfd, target);
-				close(dfd);
-			} else {
+		if (job->target) {
+			if (status > 0) {
+				remove(job->temp_depfile);
 				remove(job->temp_target);
-			}
+			} else {
+				struct stat st;
+				char *target = targetchdir(job->target);
+				char *depfile = targetdep(target);
 
-			rename(job->temp_depfile, depfile);
+				if (stat(job->temp_target, &st) == 0 &&
+				    st.st_size > 0) {
+					int dfd;
+
+					rename(job->temp_target, target);
+					dfd = open(job->temp_depfile,
+					    O_WRONLY | O_APPEND);
+					write_dep(dfd, target);
+					close(dfd);
+				} else {
+					remove(job->temp_target);
+				}
+
+				rename(job->temp_depfile, depfile);
+				remove(targetlock(target));
+			}
 		}
 
 		vacate(job->implicit);
