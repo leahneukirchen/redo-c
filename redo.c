@@ -506,18 +506,19 @@ static struct job *
 run_script(char *target, int implicit)
 {
 	char temp_depfile[] = ".depend.XXXXXX";
-	char temp_target[] = ".target.XXXXXX";
+	char temp_target_base[] = ".target.XXXXXX";
+	char temp_target[1024], rel_target[1024], cwd[1024];
 	char *orig_target = target;
 	int old_dep_fd = dep_fd;
 	int target_fd;
-	char *dofile;
+	char *dofile, *dirprefix;
 	pid_t pid;
 
 	target = targetchdir(target);
 
 	dep_fd = mkstemp(temp_depfile);
 
-	target_fd = mkstemp(temp_target);
+	target_fd = mkstemp(temp_target_base);
 
 	// TODO locking to detect parallel jobs building same target?
 
@@ -527,9 +528,26 @@ run_script(char *target, int implicit)
 		exit(1);
 	}
 
-	write_dep(dep_fd, dofile);
-	
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
+	write_dep(dep_fd, dofile);
+
+	// .do files are called from the directory they reside in, we need to
+	// prefix the arguments with the path from the dofile to the target
+	getcwd(cwd, sizeof cwd);
+	dirprefix = strchr(cwd, '\0');
+	dofile += 2;  // find_dofile starts with ./ always
+	while (strncmp(dofile, "../", 3) == 0) {
+		chdir("..");
+		dofile += 3;
+		while (*--dirprefix != '/')
+			;
+	}
+	dirprefix++;
+
+	snprintf(temp_target, sizeof temp_target,
+	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), temp_target_base);
+	snprintf(rel_target, sizeof rel_target,
+	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), target);
 
 	pid = fork();
 	if (pid < 0) {
@@ -549,7 +567,7 @@ djb-style default.o.do:
 */
 		int i;
 
-		char *basename = strdup(target);
+		char *basename = strdup(rel_target);
 		if (strchr(basename, '.')) {
 			for (i = strlen(basename)-1; i && basename[i] != '.'; i--)
 				basename[i] = 0;
@@ -566,10 +584,10 @@ djb-style default.o.do:
 
 		if (access (dofile, X_OK) != 0)  // run -x files with /bin/sh
 			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
-			    dofile, target, basename, temp_target, (char *) 0);
+			    dofile, rel_target, basename, temp_target, (char *) 0);
 		else
 			execl(dofile,
-			    dofile, target, basename, temp_target, (char *) 0);
+			    dofile, rel_target, basename, temp_target, (char *) 0);
 		vacate(implicit);
 		exit(-1);
 	} else {
@@ -584,7 +602,7 @@ djb-style default.o.do:
 		job->pid = pid;
 		job->target = orig_target;
 		job->temp_depfile = strdup(temp_depfile);
-		job->temp_target = strdup(temp_target);
+		job->temp_target = strdup(temp_target_base);
 		job->implicit = implicit;
 
 		insert_job(job);
