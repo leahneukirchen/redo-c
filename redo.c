@@ -589,7 +589,8 @@ run_script(char *target, int implicit)
 		while (*--dirprefix != '/')
 			;
 	}
-	dirprefix++;
+	if (*dirprefix)
+		dirprefix++;
 
 	snprintf(temp_target, sizeof temp_target,
 	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), temp_target_base);
