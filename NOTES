@@ -1,0 +1,32 @@
+= Notes about the redo-c implementation of redo
+
+* Without arguments, `redo` behaves like `redo all`.
+
+* `.do` files always are executed in their directory, arguments are
+  relative paths.
+
+* Standard output of `.do` files is only captured as build product if
+  `redo -s` is used, or the environment variable `REDO_STDOUT` is set to 1.
+  Else, standard output is simply displayed.
+
+* Non-executable `.do` files are run with `/bin/sh -e`.
+  `redo -x` can be utilized to use `/bin/sh -e -x` instead, for
+  debugging `.do` files or verbose builds.
+
+* Executable `.do` files are simply executed, and should have a shebang line.
+
+* When a target makes no output, no target file is created.  The target
+  is considered always out of date.
+
+* `default.do` files are checked in all parent directories up to `/`.
+
+* Parallel builds can be started with `redo -j N`, this uses a job
+  broker similar to but not compatible with GNU make.
+
+* To detect whether a file has changed, we first compare `ctime` and
+  in case it differs, a SHA2 hash of the contents.
+
+* Dependencies are tracked in `.dep.BASENAME` files all over the tree.
+  This is an implementation detail.
+
+* Builds can be started from every directory and should yield same results.
