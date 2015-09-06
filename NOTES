@@ -20,8 +20,8 @@
 
 * `default.do` files are checked in all parent directories up to `/`.
 
-* Parallel builds can be started with `redo -j N`, this uses a job
-  broker similar to but not compatible with GNU make.
+* Parallel builds can be started with `redo -j N` (or `JOBS=N redo`),
+  this uses a job broker similar to but not compatible with GNU make.
 
 * To detect whether a file has changed, we first compare `ctime` and
   in case it differs, a SHA2 hash of the contents.
@@ -30,3 +30,7 @@
   This is an implementation detail.
 
 * Builds can be started from every directory and should yield same results.
+
+* `redo -f` will consider all targets outdated and force a rebuild.
+
+* `redo -k` will keep going if a target failed to build.
