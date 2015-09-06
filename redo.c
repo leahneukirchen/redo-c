@@ -842,6 +842,8 @@ record_deps(int targetc, char *targetv[])
 	if (dep_fd < 0)
 		return;
 
+	fchdir(dir_fd);
+
 	for (targeti = 0; targeti < targetc; targeti++) {
 		fd = open(targetv[targeti], O_RDONLY);
 		if (fd < 0)
