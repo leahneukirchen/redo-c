@@ -343,6 +343,16 @@ datefile(int fd)
 	return hexdate;
 }
 
+static int
+keepdir() {
+	int fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if (fd < 0) {
+		perror("dir open");
+		exit(-1);
+	}
+	return fd;
+}
+
 static char *
 targetchdir(char *target) {
 	char *base = strrchr(target, '/');
@@ -395,6 +405,7 @@ check_deps(char *target)
 	FILE *f;
 	int ok = 1;
 	int fd;
+	int old_dir_fd = dir_fd;
 
 	target = targetchdir(target);
 
@@ -405,6 +416,8 @@ check_deps(char *target)
 	f = fopen(depfile, "r");
 	if (!f)
 		return 0;
+
+	dir_fd = keepdir();
 
 	while (ok && !feof(f)) {
 		char line[4096];
@@ -431,8 +444,10 @@ check_deps(char *target)
 				}
 				// hash is good, recurse into dependencies
 				if (ok && strcmp(target, filename) != 0 &&
-				    !sourcefile(filename))
+				    !sourcefile(filename)) {
 					ok = check_deps(filename);
+					fchdir(dir_fd);
+				}
 				break;
 			case '!':  // always rebuild
 			default:  // dep file broken, lets recreate it
@@ -447,6 +462,9 @@ check_deps(char *target)
 	}
 
 	fclose(f);
+
+	close(dir_fd);
+	dir_fd = old_dir_fd;
 
 	return ok;
 }
@@ -916,11 +934,7 @@ main(int argc, char *argv[])
 		argv[0] = (char *) "all";   // XXX safe?
 	}
 
-	dir_fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-	if (dir_fd < 0) {
-		perror("dir open");
-		exit(-1);
-	}
+	dir_fd = keepdir();
 
 	if (strcmp(program, "redo") == 0) {
 		fflag = 1;
