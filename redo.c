@@ -7,7 +7,7 @@
    http://news.dieweltistgarnichtso.net/bin/redo-sh.html
 
    To the extent possible under law,
-   Christian Neukirchen <chneukirchen@gmail.com>
+   Leah Neukirchen <leah@vuxu.org>
    has waived all copyright and related or neighboring rights to this work.
 
    http://creativecommons.org/publicdomain/zero/1.0/
