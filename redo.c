@@ -447,9 +447,9 @@ check_deps(char *target)
 					close(fd);
 				}
 				// hash is good, recurse into dependencies
-				if (ok && strcmp(target, filename) != 0 &&
-				    !sourcefile(filename)) {
-					ok = check_deps(filename);
+				if (ok && strcmp(target, filename) != 0) {
+					if (!sourcefile(filename))
+						ok = check_deps(filename);
 					fchdir(dir_fd);
 				}
 				break;
