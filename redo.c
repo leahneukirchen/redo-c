@@ -221,9 +221,9 @@ check_dofile(const char *fmt, ...)
 
 /*
 dir/base.a.b
-       will look for dir/base.a.b.do,
-       dir/default.a.b.do, dir/default.b.do, dir/default.do,
-       default.a.b.do, default.b.do, and default.do.
+	will look for dir/base.a.b.do,
+	dir/default.a.b.do, dir/default.b.do, dir/default.do,
+	default.a.b.do, default.b.do, and default.do.
 
 this function assumes no / in target
 */
@@ -344,7 +344,8 @@ datefile(int fd)
 }
 
 static int
-keepdir() {
+keepdir()
+{
 	int fd = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
 	if (fd < 0) {
 		perror("dir open");
@@ -354,7 +355,8 @@ keepdir() {
 }
 
 static char *
-targetchdir(char *target) {
+targetchdir(char *target)
+{
 	char *base = strrchr(target, '/');
 	if (base) {
 		int fd;
@@ -378,14 +380,16 @@ targetchdir(char *target) {
 }
 
 static char *
-targetdep(char *target) {
+targetdep(char *target)
+{
 	static char buf[PATH_MAX];
 	snprintf(buf, sizeof buf, ".dep.%s", target);
 	return buf;
 }
 
 static char *
-targetlock(char *target) {
+targetlock(char *target)
+{
 	static char buf[PATH_MAX];
 	snprintf(buf, sizeof buf, ".lock.%s", target);
 	return buf;
@@ -470,7 +474,8 @@ check_deps(char *target)
 }
 
 void
-vacate(int implicit) {
+vacate(int implicit)
+{
 	if (implicit)
 		implicit_jobs++;
 	else
@@ -519,7 +524,8 @@ find_job(pid_t pid)
 }
 
 static int
-write_dep(int dep_fd, char *file) {
+write_dep(int dep_fd, char *file)
+{
 	int fd = open(file, O_RDONLY);
 	if (fd < 0)
 		return 0;
