@@ -556,6 +556,7 @@ new_waitjob(int fd, int implicit)
 		job->pid = pid;
 		job->implicit = implicit;
 
+		close(fd);
 		insert_job(job);
 	}
 
@@ -615,6 +616,7 @@ run_script(char *target, int implicit)
 			exit(111);
 		}
 	}
+	close(fd);
 
 	dep_fd = mkstemp(temp_depfile);
 
