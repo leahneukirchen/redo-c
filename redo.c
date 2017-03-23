@@ -485,6 +485,7 @@ vacate(int implicit)
 struct job {
 	struct job *next;
 	pid_t pid;
+	int lock_fd;
 	char *target, *temp_depfile, *temp_target;
 	int implicit;
 };
@@ -535,7 +536,7 @@ write_dep(int dep_fd, char *file)
 }
 
 int
-new_waitjob(int fd, int implicit)
+new_waitjob(int lock_fd, int implicit)
 {
 	pid_t pid;
 
@@ -545,8 +546,8 @@ new_waitjob(int fd, int implicit)
 		vacate(implicit);
 		exit(-1);
 	} else if (pid == 0) { // child
-		lockf(fd, F_LOCK, 0);
-		close(fd);
+		lockf(lock_fd, F_LOCK, 0);
+		close(lock_fd);
 		exit(0);
 	} else {
 		struct job *job = malloc (sizeof *job);
@@ -554,9 +555,9 @@ new_waitjob(int fd, int implicit)
 			exit(-1);
 		job->target = 0;
 		job->pid = pid;
+		job->lock_fd = lock_fd;
 		job->implicit = implicit;
 
-		close(fd);
 		insert_job(job);
 	}
 
@@ -604,19 +605,19 @@ run_script(char *target, int implicit)
 
 	target = targetchdir(target);
 
-	int fd = open(targetlock(target), O_WRONLY | O_TRUNC | O_CREAT, 0666);
-	if (lockf(fd, F_TLOCK, 0) < 0) {
+	int lock_fd = open(targetlock(target),
+	    O_WRONLY | O_TRUNC | O_CREAT, 0666);
+	if (lockf(lock_fd, F_TLOCK, 0) < 0) {
 		if (errno == EAGAIN) {
 			fprintf(stderr, "redo: %s already building, waiting.\n",
 			    orig_target);
-			new_waitjob(fd, implicit);
+			new_waitjob(lock_fd, implicit);
 			return;
 		} else {
 			perror("lockf");
 			exit(111);
 		}
 	}
-	close(fd);
 
 	dep_fd = mkstemp(temp_depfile);
 
@@ -670,6 +671,7 @@ djb-style default.o.do:
 
 		if (old_dep_fd > 0)
 			close(old_dep_fd);
+		close(lock_fd);
 		setenvfd("REDO_DEP_FD", dep_fd);
 		setenvfd("REDO_LEVEL", level + 1);
 		if (sflag > 0)
@@ -695,6 +697,7 @@ djb-style default.o.do:
 		dep_fd = old_dep_fd;
 
 		job->pid = pid;
+		job->lock_fd = lock_fd;
 		job->target = orig_target;
 		job->temp_depfile = strdup(temp_depfile);
 		job->temp_target = strdup(temp_target_base);
@@ -848,6 +851,8 @@ redo_ifchange(int targetc, char *targetv[])
 				remove(targetlock(target));
 			}
 		}
+
+		close(job->lock_fd);
 
 		vacate(job->implicit);
 		
