@@ -196,9 +196,9 @@ int implicit_jobs = 1;
 int kflag, jflag, xflag, fflag, sflag;
 
 static void
-redo_ifcreate(char *target)
+redo_ifcreate(int fd, char *target)
 {
-	dprintf(dep_fd, "-%s\n", target);
+	dprintf(fd, "-%s\n", target);
 }
 
 static char *
@@ -214,7 +214,7 @@ check_dofile(const char *fmt, ...)
 	if (access (dofile, F_OK) == 0) {
 		return dofile;
 	} else {
-		redo_ifcreate(dofile);
+		redo_ifcreate(dep_fd, dofile);
 		return 0;
 	}
 }
@@ -412,9 +412,6 @@ check_deps(char *target)
 	int old_dir_fd = dir_fd;
 
 	target = targetchdir(target);
-
-	if (access(target, F_OK) != 0)
-		return 0;
 
 	depfile = targetdep(target);
 	f = fopen(depfile, "r");
@@ -833,19 +830,19 @@ redo_ifchange(int targetc, char *targetv[])
 				struct stat st;
 				char *target = targetchdir(job->target);
 				char *depfile = targetdep(target);
+				int dfd;
 
+				dfd = open(job->temp_depfile,
+				    O_WRONLY | O_APPEND);
 				if (stat(job->temp_target, &st) == 0 &&
 				    st.st_size > 0) {
-					int dfd;
-
 					rename(job->temp_target, target);
-					dfd = open(job->temp_depfile,
-					    O_WRONLY | O_APPEND);
 					write_dep(dfd, target);
-					close(dfd);
 				} else {
 					remove(job->temp_target);
+					redo_ifcreate(dfd, target);
 				}
+				close(dfd);
 
 				rename(job->temp_depfile, depfile);
 				remove(targetlock(target));
@@ -959,7 +956,7 @@ main(int argc, char *argv[])
 		procure();
 	} else if (strcmp(program, "redo-ifcreate") == 0) {
 		for (i = 0; i < argc; i++)
-			redo_ifcreate(argv[i]);
+			redo_ifcreate(dep_fd, argv[i]);
 	} else if (strcmp(program, "redo-always") == 0) {
 		dprintf(dep_fd, "!\n");
 	} else if (strcmp(program, "redo-hash") == 0) {
