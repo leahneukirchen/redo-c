@@ -48,8 +48,8 @@ todo:
 /* public domain sha256 implementation based on fips180-3 */
 
 struct sha256 {
-	uint64_t len;	 /* processed message length */
-	uint32_t h[8];	 /* hash state */
+	uint64_t len;    /* processed message length */
+	uint32_t h[8];   /* hash state */
 	uint8_t buf[64]; /* message block buffer */
 };
 
@@ -94,8 +94,8 @@ static void processblock(struct sha256 *s, const uint8_t *buf)
 	g = s->h[6];
 	h = s->h[7];
 	for (i = 0; i < 64; i++) {
-		t1 = h + S1(e) + Ch(e,f,g) + K[i] + W[i];
-		t2 = S0(a) + Maj(a,b,c);
+		t1 = h + S1(e) + Ch(e, f, g) + K[i] + W[i];
+		t2 = S0(a) + Maj(a, b, c);
 		h = g;
 		g = f;
 		f = e;
@@ -211,7 +211,7 @@ check_dofile(const char *fmt, ...)
 	vsnprintf(dofile, sizeof dofile, fmt, ap);
 	va_end(ap);
 
-	if (access (dofile, F_OK) == 0) {
+	if (access(dofile, F_OK) == 0) {
 		return dofile;
 	} else {
 		redo_ifcreate(dep_fd, dofile);
@@ -244,14 +244,14 @@ find_dofile(char *target)
 	*u = 0;
 
 	st.st_dev = ost.st_dev = st.st_ino = ost.st_ino = 0;
-	
+
 	while (1) {
 		ost = st;
 
 		if (stat(updir, &st) < 0)
 			return 0;
 		if (ost.st_dev == st.st_dev && ost.st_ino == st.st_ino)
-			break;	// reached root dir, .. = .
+			break;  // reached root dir, .. = .
 
 		s = target;
 		while (*s) {
@@ -283,11 +283,11 @@ envfd(const char *name)
 	char *s = getenv(name);
 	if (!s)
 		return -1;
-	
+
 	fd = strtol(s, 0, 10);
 	if (fd < 0 || fd > 255)
 		fd = -1;
-	
+
 	return fd;
 }
 
@@ -319,9 +319,9 @@ hashfile(int fd)
 		sha256_update(&ctx, buf, r);
 		off += r;
 	}
-	
+
 	sha256_sum(&ctx, hash);
-	
+
 	for (i = 0, a = asciihash; i < 32; i++) {
 		*a++ = hex[hash[i] / 16];
 		*a++ = hex[hash[i] % 16];
@@ -429,7 +429,7 @@ check_deps(char *target)
 		if (fgets(line, sizeof line, f)) {
 			line[strlen(line)-1] = 0; // strip \n
 			switch (line[0]) {
-			case '-':  // must not exist 
+			case '-':  // must not exist
 				if (access(line+1, F_OK) == 0)
 					ok = 0;
 				break;
@@ -547,7 +547,7 @@ new_waitjob(int lock_fd, int implicit)
 		close(lock_fd);
 		exit(0);
 	} else {
-		struct job *job = malloc (sizeof *job);
+		struct job *job = malloc(sizeof *job);
 		if (!job)
 			exit(-1);
 		job->target = 0;
@@ -676,16 +676,16 @@ djb-style default.o.do:
 		else
 			close(target_fd);
 
-		if (access (dofile, X_OK) != 0)  // run -x files with /bin/sh
+		if (access(dofile, X_OK) != 0)   // run -x files with /bin/sh
 			execl("/bin/sh", "/bin/sh", xflag > 0 ? "-ex" : "-e",
-			    dofile, rel_target, basename, temp_target, (char *) 0);
+			    dofile, rel_target, basename, temp_target, (char *)0);
 		else
 			execl(dofile,
-			    dofile, rel_target, basename, temp_target, (char *) 0);
+			    dofile, rel_target, basename, temp_target, (char *)0);
 		vacate(implicit);
 		exit(-1);
 	} else {
-		struct job *job = malloc (sizeof *job);
+		struct job *job = malloc(sizeof *job);
 		if (!job)
 			exit(-1);
 
@@ -751,7 +751,7 @@ create_pool()
 			pipe(fds);
 			poolrd_fd = fds[0];
 			poolwr_fd = fds[1];
-			
+
 			for (i = 0; i < jobs-1; i++)
 				vacate(0);
 
@@ -781,7 +781,7 @@ redo_ifchange(int targetc, char *targetv[])
 	// check all targets whether needing rebuild
 	for (targeti = 0; targeti < targetc; targeti++)
 		skip[targeti] = fflag > 0 ? 0 : check_deps(targetv[targeti]);
-	
+
 	targeti = 0;
 	while (1) {
 		int procured = 0;
@@ -809,14 +809,14 @@ redo_ifchange(int targetc, char *targetv[])
 			if (errno == ECHILD && targeti < targetc)
 				continue;   // no child yet???
 			else
-				break;	 // no child left
+				break;   // no child left
 		}
 
 		if (WIFEXITED(status))
 			status = WEXITSTATUS(status);
 
 		job = find_job(pid);
-		
+
 		if (!job) {
 			exit(-1);
 		}
@@ -852,7 +852,7 @@ redo_ifchange(int targetc, char *targetv[])
 		close(job->lock_fd);
 
 		vacate(job->implicit);
-		
+
 		if (kflag < 0 && status > 0) {
 			printf("failed with status %d\n", status);
 			exit(status);
@@ -941,7 +941,7 @@ main(int argc, char *argv[])
 
 	if (argc == 0) {
 		argc = 1;
-		argv[0] = (char *) "all";   // XXX safe?
+		argv[0] = (char *)"all";    // XXX safe?
 	}
 
 	dir_fd = keepdir();
