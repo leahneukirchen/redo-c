@@ -521,13 +521,32 @@ find_job(pid_t pid)
 	return 0;
 }
 
+char uprel[PATH_MAX];
+
+void
+compute_uprel()
+{
+	char *u = uprel;
+	char *dp = getenv("REDO_DIRPREFIX");
+
+	*u = 0;
+	while (dp && *dp) {
+		*u++ = '.';
+		*u++ = '.';
+		*u++ = '/';
+		*u = 0;
+		dp = strchr(dp + 1, '/');
+	}
+}
+
 static int
 write_dep(int dep_fd, char *file)
 {
 	int fd = open(file, O_RDONLY);
 	if (fd < 0)
 		return 0;
-	dprintf(dep_fd, "=%s %s %s\n", hashfile(fd), datefile(fd), file);
+	dprintf(dep_fd, "=%s %s %s%s\n",
+	    hashfile(fd), datefile(fd), (*file == '/' ? "" : uprel), file);
 	close(fd);
 	return 0;
 }
@@ -647,6 +666,11 @@ run_script(char *target, int implicit)
 	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), temp_target_base);
 	snprintf(rel_target, sizeof rel_target,
 	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), target);
+
+	if (dirprefix)
+		setenv("REDO_DIRPREFIX", dirprefix, 1);
+	else
+		unsetenv("REDO_DIRPREFIX");
 
 	pid = fork();
 	if (pid < 0) {
@@ -875,12 +899,12 @@ record_deps(int targetc, char *targetv[])
 		return;
 
 	fchdir(dir_fd);
+	compute_uprel();
 
 	for (targeti = 0; targeti < targetc; targeti++) {
 		fd = open(targetv[targeti], O_RDONLY);
 		if (fd < 0)
 			continue;
-		// here, we write out the unmodified target name!
 		write_dep(dep_fd, targetv[targeti]);
 		close(fd);
 	}
