@@ -663,6 +663,10 @@ djb-style default.o.do:
    $1	   all
    $2	   all (!!)
    $3	   whatever.tmp
+
+   $1	   subdir/foo.o
+   $2	   subdir/foo
+   $3	   subdir/whatever.tmp
 */
 		char *basename = redo_basename(dofile, rel_target);
 
