@@ -2,7 +2,7 @@
    in portable C with zero dependencies
 
    http://cr.yp.to/redo.html
-   https://jdebp.eu./FGA/introduction-to-redo.html
+   https://jdebp.eu/FGA/introduction-to-redo.html
    https://github.com/apenwarr/redo/blob/master/README.md
    http://news.dieweltistgarnichtso.net/bin/redo-sh.html
 
