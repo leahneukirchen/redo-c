@@ -1,0 +1,8 @@
+.dep.*
+.depend.*
+.lock.*
+.target.*
+redo
+redo-ifcreate
+redo-ifchange
+redo-always
