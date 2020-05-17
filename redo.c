@@ -862,8 +862,7 @@ redo_ifchange(int targetc, char *targetv[])
 
 				dfd = open(job->temp_depfile,
 				    O_WRONLY | O_APPEND);
-				if (stat(job->temp_target, &st) == 0 &&
-				    st.st_size > 0) {
+				if (stat(job->temp_target, &st) == 0) {
 					rename(job->temp_target, target);
 					write_dep(dfd, target);
 				} else {
