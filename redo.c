@@ -776,7 +776,7 @@ create_pool()
 		int jobs = envfd("JOBS");
 		if (jobs > 1) {
 			int i, fds[2];
-			pipe(fds);
+			pipe2(fds, O_CLOEXEC);
 			poolrd_fd = fds[0];
 			poolwr_fd = fds[1];
 
