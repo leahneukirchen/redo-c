@@ -34,7 +34,6 @@ todo:
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <poll.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -739,19 +738,13 @@ try_procure()
 		implicit_jobs--;
 		return 1;
 	} else {
-		struct pollfd p;
-
 		if (poolrd_fd < 0)
 			return 0;
 
-		p.fd = poolrd_fd;
-		p.events = POLLIN;
+		fcntl(poolrd_fd, F_SETFL, O_NONBLOCK);
 
-		if (poll(&p, 1, 0) > 0 && p.revents & POLLIN) {
-			char buf[1];
-			return read(poolrd_fd, &buf, 1) > 0;
-		}
-		return 0;
+		char buf[1];
+		return read(poolrd_fd, &buf, 1) > 0;
 	}
 }
 
@@ -762,6 +755,8 @@ procure()
 		implicit_jobs--;
 		return 1;
 	} else {
+		fcntl(poolrd_fd, F_SETFL, 0);   // clear O_NONBLOCK
+
 		char buf[1];
 		return read(poolrd_fd, &buf, 1) > 0;
 	}
