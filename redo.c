@@ -816,10 +816,11 @@ redo_ifchange(int targetc, char *targetv[])
 				continue;
 			}
 
+			int implicit = implicit_jobs > 0;
 			if (try_procure()) {
 				procured = 1;
 				targeti++;
-				run_script(target, implicit_jobs >= 0);
+				run_script(target, implicit);
 			}
 		}
 
