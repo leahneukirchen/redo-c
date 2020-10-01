@@ -1,4 +1,16 @@
-= Notes about the redo-c implementation of redo
+# redo-c
+
+redo-c is an implementation of the redo build system (designed by
+Daniel J. Bernstein) in portable C with zero external dependencies.
+
+## Documentation
+
+Please refer to the documentation for
+[redo in Python])(https://github.com/apenwarr/redo/blob/master/README.md),
+or the [tutorial by Jonathan de Boyne Pollard](http://jdebp.eu/FGA/introduction-to-redo.html)
+for usage instructions.
+
+## Notes about the redo-c implementation of redo
 
 * Without arguments, `redo` behaves like `redo all`.
 
@@ -34,3 +46,10 @@
 * `redo -f` will consider all targets outdated and force a rebuild.
 
 * `redo -k` will keep going if a target failed to build.
+
+## Copying
+
+To the extent possible under law, Leah Neukirchen <leah@vuxu.org>
+has waived all copyright and related or neighboring rights to this work.
+
+http://creativecommons.org/publicdomain/zero/1.0/
