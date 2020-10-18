@@ -6,7 +6,7 @@ Daniel J. Bernstein) in portable C with zero external dependencies.
 ## Documentation
 
 Please refer to the documentation for
-[redo in Python])(https://github.com/apenwarr/redo/blob/master/README.md),
+[redo in Python](https://github.com/apenwarr/redo/blob/master/README.md),
 or the [tutorial by Jonathan de Boyne Pollard](http://jdebp.eu/FGA/introduction-to-redo.html)
 for usage instructions.
 
