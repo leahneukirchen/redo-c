@@ -974,7 +974,7 @@ main(int argc, char *argv[])
 	dir_fd = keepdir();
 
 	if (strcmp(program, "redo") == 0) {
-		// fflag = 1;
+		fflag = 1;
 		redo_ifchange(argc, argv);
 		procure();
 	} else if (strcmp(program, "redo-ifchange") == 0) {
