@@ -398,6 +398,10 @@ static int
 sourcefile(char *target)
 {
 	target = targetchdir(target);
+	
+	if ( fflag > 0 )
+		return ( find_dofile ( target ) == 0 );
+	
 	return access(target, F_OK) == 0 && access(targetdep(target), F_OK) != 0;
 }
 
@@ -970,7 +974,7 @@ main(int argc, char *argv[])
 	dir_fd = keepdir();
 
 	if (strcmp(program, "redo") == 0) {
-		fflag = 1;
+		// fflag = 1;
 		redo_ifchange(argc, argv);
 		procure();
 	} else if (strcmp(program, "redo-ifchange") == 0) {
