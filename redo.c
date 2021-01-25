@@ -398,11 +398,14 @@ static int
 sourcefile(char *target)
 {
 	target = targetchdir(target);
-	
-	if ( fflag > 0 )
-		return ( find_dofile ( target ) == 0 );
-	
-	return access(target, F_OK) == 0 && access(targetdep(target), F_OK) != 0;
+
+	if (access(targetdep(target), F_OK) == 0)
+		return 0;
+
+	if ( fflag < 0 )
+		return (access(target, F_OK) == 0);
+
+	return (find_dofile(target) == 0);
 }
 
 static int
