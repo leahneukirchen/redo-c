@@ -337,7 +337,7 @@ datefile(int fd)
 	struct stat st;
 
 	fstat(fd, &st);
-	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, st.st_ctime);
+	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, (int64_t) st.st_ctime);
 
 	return hexdate;
 }
