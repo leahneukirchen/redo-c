@@ -1,4 +1,4 @@
 #!/bin/sh
 # redo-targets - list files redo can build
 
-find -name '.dep.*' | sed 's,\(.*\)/\.dep\.,\1/,' | sort
+find . -name '.dep.*' | sed 's,\(.*\)/\.dep\.,\1/,' | sort
