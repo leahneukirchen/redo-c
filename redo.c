@@ -337,7 +337,7 @@ datefile(int fd)
 	struct stat st;
 
 	fstat(fd, &st);
-	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, st.st_ctime);
+	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, (uint64_t)st.st_ctime);
 
 	return hexdate;
 }
@@ -662,9 +662,9 @@ run_script(char *target, int implicit)
 		dirprefix++;
 
 	snprintf(temp_target, sizeof temp_target,
-	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), temp_target_base);
+	    "%s%s%s", dirprefix, (*dirprefix ? "/" : ""), temp_target_base);
 	snprintf(rel_target, sizeof rel_target,
-	    "%s%s%s", dirprefix, "/"+(*dirprefix ? 0 : 1), target);
+	    "%s%s%s", dirprefix, (*dirprefix ? "/" : ""), target);
 
 	if (dirprefix)
 		setenv("REDO_DIRPREFIX", dirprefix, 1);
