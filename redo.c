@@ -402,7 +402,7 @@ sourcefile(char *target)
 	if (access(targetdep(target), F_OK) == 0)
 		return 0;
 
-	if (!fflag)
+	if (fflag < 0)
 		return access(target, F_OK) == 0;
 
 	return find_dofile(target) == 0;
