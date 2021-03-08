@@ -969,8 +969,10 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (argc == 0) {
+		static char all[] = "all";
+		static char *argv_def[] = { all };
 		argc = 1;
-		argv[0] = (char *)"all";    // XXX safe?
+		argv = argv_def;
 	}
 
 	dir_fd = keepdir();
