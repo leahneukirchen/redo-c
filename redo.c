@@ -613,6 +613,83 @@ redo_basename(char *dofile, char *target)
 	return buf;
 }
 
+
+static int
+append_branch (char *target)
+{
+	static char *redo_track_buf=0;	/* this buffer will hold initial REDO_TRACK
+					   stored once during the very first envocation
+					   followed by target cwd and target basename
+					   varying for consequent envocations */
+
+	static size_t redo_track_len=0;	/* length of initial REDO_TRACK part of redo_track_buf,
+					   counted once during the very first invocation */
+ 
+	static size_t redo_track_buf_size; /* the whole redo_track_buf size, sufficient for
+					      holding initial REDO_TRACK and current target
+					      full path */
+					      
+
+	int target_len = strlen (target);
+
+	if (!redo_track_buf) {
+		char *redo_track_ptr = getenv("REDO_TRACK");
+		if (redo_track_ptr)
+			redo_track_len = strlen (redo_track_ptr);
+		redo_track_buf_size = redo_track_len + PATH_MAX + 3;
+		redo_track_buf = malloc (redo_track_buf_size);
+		if (!redo_track_buf) {
+			fprintf(stderr,"redo_track_buf malloc failed.\n");
+			exit (2);
+		}
+		if (redo_track_ptr)
+			strncpy (redo_track_buf, redo_track_ptr, redo_track_len + 1);
+	}
+
+	redo_track_buf [redo_track_len] = 0;	/* separating initial REDO_TRACK
+						   and target full path */
+
+	while (1) {
+		char *target_wd = getcwd (redo_track_buf + redo_track_len + 1,
+					  redo_track_buf_size - redo_track_len - target_len - 3);
+
+		if (target_wd) {	/* getcwd successful */
+			strcat (target_wd, "/");
+			strcat (target_wd, target);
+			break;
+		}
+
+		if (errno == ERANGE) {  /* redo_track_buf_size is not sufficient */
+			redo_track_buf_size += PATH_MAX;
+			redo_track_buf = realloc (redo_track_buf, redo_track_buf_size);
+			if (!redo_track_buf) {
+				fprintf(stderr,"redo_track_buf malloc failed.\n");
+				exit (2);
+			}
+		} else {
+			perror ("getcwd");
+			exit (2);
+		}
+	}
+
+	/* searching for target full path inside initial REDO_TRACK */
+	if (strstr (redo_track_buf, redo_track_buf + redo_track_len + 1)) {
+		fprintf (stderr, "Infinite dependency loop attempt - %s\n",target);
+		return 1;
+	}
+
+	redo_track_buf [redo_track_len] = ':';	/* appending target full path to
+						   the initial REDO_TRACK */
+
+	if (setenv ("REDO_TRACK", redo_track_buf, 1)) {
+		perror ("setenv");
+		exit (2);
+	}
+
+	return 0;
+}
+
+
 static void
 run_script(char *target, int implicit)
 {
@@ -626,6 +703,11 @@ run_script(char *target, int implicit)
 	pid_t pid;
 
 	target = targetchdir(target);
+
+	if (append_branch (target) != 0) {
+		orig_target [0] = 0; /* preventing target appearance in .dep file */
+		return;
+	}
 
 	int lock_fd = open(targetlock(target),
 	    O_WRONLY | O_TRUNC | O_CREAT, 0666);
@@ -903,6 +985,9 @@ record_deps(int targetc, char *targetv[])
 	fchdir(dir_fd);
 
 	for (targeti = 0; targeti < targetc; targeti++) {
+		/* empty target name means loop dependency was detected in run_script() */
+		if ( *targetv[targeti] == 0)
+			continue;
 		fd = open(targetv[targeti], O_RDONLY);
 		if (fd < 0)
 			continue;
