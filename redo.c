@@ -968,14 +968,17 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0) {
-		argc = 1;
-		argv[0] = (char *)"all";    // XXX safe?
-	}
-
 	dir_fd = keepdir();
 
 	if (strcmp(program, "redo") == 0) {
+		char all[] = "all";
+		char *argv_def[] = { all };
+
+		if (argc == 0) {
+			argc = 1;
+			argv = argv_def;
+		}
+
 		fflag = 1;
 		redo_ifchange(argc, argv);
 		procure();
