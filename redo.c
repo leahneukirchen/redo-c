@@ -627,6 +627,12 @@ run_script(char *target, int implicit)
 
 	target = targetchdir(target);
 
+	dofile = find_dofile(target);
+	if (!dofile) {
+		fprintf(stderr, "no dofile for %s.\n", target);
+		exit(1);
+	}
+
 	int lock_fd = open(targetlock(target),
 	    O_WRONLY | O_TRUNC | O_CREAT, 0666);
 	if (lockf(lock_fd, F_TLOCK, 0) < 0) {
@@ -644,12 +650,6 @@ run_script(char *target, int implicit)
 	dep_fd = mkstemp(temp_depfile);
 
 	target_fd = mkstemp(temp_target_base);
-
-	dofile = find_dofile(target);
-	if (!dofile) {
-		fprintf(stderr, "no dofile for %s.\n", target);
-		exit(1);
-	}
 
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
 	write_dep(dep_fd, dofile);
