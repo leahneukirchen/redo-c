@@ -397,8 +397,6 @@ targetlock(char *target)
 static int
 sourcefile(char *target)
 {
-	target = targetchdir(target);
-
 	if (access(targetdep(target), F_OK) == 0)
 		return 0;
 
@@ -418,6 +416,12 @@ check_deps(char *target)
 	int old_dir_fd = dir_fd;
 
 	target = targetchdir(target);
+
+	if (sourcefile(target))
+		return 1;
+
+	if (fflag > 0)
+		return 0;
 
 	depfile = targetdep(target);
 	f = fopen(depfile, "r");
@@ -451,8 +455,7 @@ check_deps(char *target)
 				}
 				// hash is good, recurse into dependencies
 				if (ok && strcmp(target, filename) != 0) {
-					if (!sourcefile(filename))
-						ok = check_deps(filename);
+					ok = check_deps(filename);
 					fchdir(dir_fd);
 				}
 				break;
@@ -807,7 +810,7 @@ redo_ifchange(int targetc, char *targetv[])
 
 	// check all targets whether needing rebuild
 	for (targeti = 0; targeti < targetc; targeti++)
-		skip[targeti] = fflag > 0 ? 0 : check_deps(targetv[targeti]);
+		skip[targeti] = check_deps(targetv[targeti]);
 
 	targeti = 0;
 	while (1) {
@@ -815,7 +818,7 @@ redo_ifchange(int targetc, char *targetv[])
 		if (targeti < targetc) {
 			char *target = targetv[targeti];
 
-			if (skip[targeti] || sourcefile(target)) {
+			if (skip[targeti]) {
 				targeti++;
 				continue;
 			}
