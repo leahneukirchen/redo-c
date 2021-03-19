@@ -673,10 +673,7 @@ run_script(char *target, int implicit)
 	snprintf(rel_target, sizeof rel_target,
 	    "%s%s%s", dirprefix, (*dirprefix ? "/" : ""), target);
 
-	if (dirprefix)
-		setenv("REDO_DIRPREFIX", dirprefix, 1);
-	else
-		unsetenv("REDO_DIRPREFIX");
+	setenv("REDO_DIRPREFIX", dirprefix, 1);
 
 	pid = fork();
 	if (pid < 0) {
