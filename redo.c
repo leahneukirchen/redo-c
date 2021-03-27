@@ -801,26 +801,23 @@ redo_ifchange(int targetc, char *targetv[])
 	int status;
 	struct job *job;
 
-	int targeti = 0;
+	int targeti = 0, targeti_checked = -1;
 
-	// XXX
-	char skip[targetc];
 
 	create_pool();
 
-	// check all targets whether needing rebuild
-	for (targeti = 0; targeti < targetc; targeti++)
-		skip[targeti] = check_deps(targetv[targeti]);
 
-	targeti = 0;
 	while (1) {
 		int procured = 0;
 		if (targeti < targetc) {
 			char *target = targetv[targeti];
 
-			if (skip[targeti]) {
-				targeti++;
-				continue;
+			if (targeti != targeti_checked) {
+				if (check_deps(target)) {
+					targeti++;
+					continue;
+				}
+				targeti_checked = targeti;
 			}
 
 			int implicit = implicit_jobs > 0;
