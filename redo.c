@@ -447,17 +447,19 @@ check_deps(char *target)
 				fd = open(filename, O_RDONLY);
 				if (fd < 0) {
 					ok = 0;
-				} else {
-					if (strncmp(timestamp, datefile(fd), 16) != 0 &&
-					    strncmp(hash, hashfile(fd), 64) != 0)
-						ok = 0;
-					close(fd);
+					break;
 				}
-				// hash is good, recurse into dependencies
-				if (ok && strcmp(target, filename) != 0) {
+
+				if (strcmp(target, filename) != 0) {
 					ok = check_deps(filename);
 					fchdir(dir_fd);
 				}
+
+				ok = ok && 
+					(strncmp(timestamp, datefile(fd), 16) == 0 ||
+					strncmp(hash, hashfile(fd), 64) == 0);
+
+				close(fd);
 				break;
 			case '!':  // always rebuild
 			default:  // dep file broken, lets recreate it
