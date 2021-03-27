@@ -630,6 +630,7 @@ append_branch (char *target)
 					      full path */
 					      
 
+	char *target_wd, *ptr;
 	int target_len = strlen (target);
 
 	if (!redo_track_buf) {
@@ -650,8 +651,8 @@ append_branch (char *target)
 						   and target full path */
 
 	while (1) {
-		char *target_wd = getcwd (redo_track_buf + redo_track_len + 1,
-					  redo_track_buf_size - redo_track_len - target_len - 3);
+		target_wd = getcwd (redo_track_buf + redo_track_len + 1,
+				redo_track_buf_size - redo_track_len - target_len - 3);
 
 		if (target_wd) {	/* getcwd successful */
 			strcat (target_wd, "/");
@@ -673,9 +674,13 @@ append_branch (char *target)
 	}
 
 	/* searching for target full path inside initial REDO_TRACK */
-	if (strstr (redo_track_buf, redo_track_buf + redo_track_len + 1)) {
-		fprintf (stderr, "Infinite dependency loop attempt - %s\n",target);
-		return 1;
+	ptr = strstr(redo_track_buf, target_wd);
+	if (ptr) {
+		ptr += strlen(target_wd);
+		if ((*ptr == ':') || (*ptr == 0)){
+			fprintf (stderr, "Infinite dependency loop attempt - %s\n",target);
+			return 1;
+		}
 	}
 
 	redo_track_buf [redo_track_len] = ':';	/* appending target full path to
