@@ -192,7 +192,7 @@ int poolwr_fd = -1;
 int poolrd_fd = -1;
 int level = -1;
 int implicit_jobs = 1;
-int kflag, jflag, xflag, fflag, sflag;
+int kflag, jflag, xflag, fflag, sflag, hflag;
 
 static void
 redo_ifcreate(int fd, char *target)
@@ -428,8 +428,8 @@ check_dep_1(char *line, int dir_fd, char *target)
 		if (fd < 0) {
 			ok = 0;
 		} else {
-			if (strncmp(timestamp, datefile(fd), 16) != 0 &&
-			    strncmp(hash, hashfile(fd), 64) != 0)
+			int do_hash = hflag || strncmp(timestamp, datefile(fd), 16) != 0;
+			if (do_hash && strncmp(hash, hashfile(fd), 64) != 0)
 				ok = 0;
 			close(fd);
 		}
@@ -936,7 +936,7 @@ main(int argc, char *argv[])
 	else
 		program = argv[0];
 
-	while ((opt = getopt(argc, argv, "+kxfsj:C:")) != -1) {
+	while ((opt = getopt(argc, argv, "+kxfHsj:C:")) != -1) {
 		switch (opt) {
 		case 'k':
 			setenvfd("REDO_KEEP_GOING", 1);
@@ -949,6 +949,9 @@ main(int argc, char *argv[])
 			break;
 		case 's':
 			setenvfd("REDO_STDOUT", 1);
+			break;
+		case 'H':
+			setenvfd("REDO_HASH_ONLY", 1);
 			break;
 		case 'j':
 			setenv("JOBS", optarg, 1);
@@ -971,6 +974,8 @@ main(int argc, char *argv[])
 	kflag = envfd("REDO_KEEP_GOING");
 	xflag = envfd("REDO_TRACE");
 	sflag = envfd("REDO_STDOUT");
+	/* Re-calculate hashes even if timestamps match. */
+	hflag = envfd("REDO_HASH_ONLY");
 
 	dir_fd = keepdir();
 
