@@ -337,7 +337,16 @@ datefile(int fd)
 	struct stat st;
 
 	fstat(fd, &st);
-	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, (uint64_t)st.st_ctime);
+
+#if (defined(__APPLE__) && defined(__MACH__))
+	uint64_t msec = st.st_ctimespec.tv_sec * 1000ULL +
+	    st.st_ctimespec.tv_nsec / 1000000ULL;
+#else /* POSIX.1-2008 */
+	uint64_t msec = st.st_ctim.tv_sec * 1000ULL +
+	    st.st_ctim.tv_nsec / 1000000ULL;
+#endif
+
+	snprintf(hexdate, sizeof hexdate, "%016" PRIx64, msec);
 
 	return hexdate;
 }
