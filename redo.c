@@ -902,13 +902,8 @@ record_deps(int targetc, char *targetv[])
 
 	fchdir(dir_fd);
 
-	for (targeti = 0; targeti < targetc; targeti++) {
-		fd = open(targetv[targeti], O_RDONLY);
-		if (fd < 0)
-			continue;
+	for (targeti = 0; targeti < targetc; targeti++)
 		write_dep(dep_fd, targetv[targeti]);
-		close(fd);
-	}
 }
 
 int
