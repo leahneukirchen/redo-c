@@ -192,7 +192,7 @@ int poolwr_fd = -1;
 int poolrd_fd = -1;
 int level = -1;
 int implicit_jobs = 1;
-int kflag, jflag, xflag, fflag, sflag;
+int kflag, jflag, xflag, fflag, sflag, hflag;
 
 static void
 redo_ifcreate(int fd, char *target)
@@ -406,13 +406,53 @@ sourcefile(char *target)
 	return find_dofile(target) == 0;
 }
 
+static int check_deps(char *target);
+
+static int
+check_dep_1(char *line, int dir_fd, char *target)
+{
+	char *hash = line + 1;
+	char *timestamp = line + 1 + 64 + 1;
+	char *filename = line + 1 + 64 + 1 + 16 + 1;
+	int ok = 1;
+	int fd;
+
+	line[strlen(line)-1] = 0; // strip \n
+	switch (line[0]) {
+	case '-':  // must not exist
+		if (access(line+1, F_OK) == 0)
+			ok = 0;
+		break;
+	case '=':  // compare hash
+		fd = open(filename, O_RDONLY);
+		if (fd < 0) {
+			ok = 0;
+		} else {
+			int do_hash = hflag || strncmp(timestamp, datefile(fd), 16) != 0;
+			if (do_hash && strncmp(hash, hashfile(fd), 64) != 0)
+				ok = 0;
+			close(fd);
+		}
+		// hash is good, recurse into dependencies
+		if (ok && strcmp(target, filename) != 0) {
+			ok = check_deps(filename);
+			fchdir(dir_fd);
+		}
+		break;
+	case '!':  // always rebuild
+	default:  // dep file broken, lets recreate it
+		ok = 0;
+	}
+
+	return ok;
+}
+
 static int
 check_deps(char *target)
 {
 	char *depfile;
 	FILE *f;
 	int ok = 1;
-	int fd;
 	int old_dir_fd = dir_fd;
 
 	target = targetchdir(target);
@@ -432,42 +472,10 @@ check_deps(char *target)
 
 	while (ok && !feof(f)) {
 		char line[4096];
-		char *hash = line + 1;
-		char *timestamp = line + 1 + 64 + 1;
-		char *filename = line + 1 + 64 + 1 + 16 + 1;
-
 		if (fgets(line, sizeof line, f)) {
-			line[strlen(line)-1] = 0; // strip \n
-			switch (line[0]) {
-			case '-':  // must not exist
-				if (access(line+1, F_OK) == 0)
-					ok = 0;
-				break;
-			case '=':  // compare hash
-				fd = open(filename, O_RDONLY);
-				if (fd < 0) {
-					ok = 0;
-				} else {
-					if (strncmp(timestamp, datefile(fd), 16) != 0 &&
-					    strncmp(hash, hashfile(fd), 64) != 0)
-						ok = 0;
-					close(fd);
-				}
-				// hash is good, recurse into dependencies
-				if (ok && strcmp(target, filename) != 0) {
-					ok = check_deps(filename);
-					fchdir(dir_fd);
-				}
-				break;
-			case '!':  // always rebuild
-			default:  // dep file broken, lets recreate it
-				ok = 0;
-			}
+			ok = ok && check_dep_1(line, dir_fd, target);
 		} else {
-			if (!feof(f)) {
-				ok = 0;
-				break;
-			}
+			ok = !feof(f);
 		}
 	}
 
@@ -923,7 +931,7 @@ main(int argc, char *argv[])
 	else
 		program = argv[0];
 
-	while ((opt = getopt(argc, argv, "+kxfsj:C:")) != -1) {
+	while ((opt = getopt(argc, argv, "+kxfHsj:C:")) != -1) {
 		switch (opt) {
 		case 'k':
 			setenvfd("REDO_KEEP_GOING", 1);
@@ -936,6 +944,9 @@ main(int argc, char *argv[])
 			break;
 		case 's':
 			setenvfd("REDO_STDOUT", 1);
+			break;
+		case 'H':
+			setenvfd("REDO_HASH_ONLY", 1);
 			break;
 		case 'j':
 			setenv("JOBS", optarg, 1);
@@ -958,6 +969,8 @@ main(int argc, char *argv[])
 	kflag = envfd("REDO_KEEP_GOING");
 	xflag = envfd("REDO_TRACE");
 	sflag = envfd("REDO_STDOUT");
+	/* Re-calculate hashes even if timestamps match. */
+	hflag = envfd("REDO_HASH_ONLY");
 
 	dir_fd = keepdir();
 
