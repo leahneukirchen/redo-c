@@ -629,6 +629,7 @@ run_script(char *target, int implicit)
 	pid_t pid;
 
 	target = targetchdir(target);
+	dep_fd = mkstemp(temp_depfile);
 
 	dofile = find_dofile(target);
 	if (!dofile) {
@@ -649,8 +650,6 @@ run_script(char *target, int implicit)
 			exit(111);
 		}
 	}
-
-	dep_fd = mkstemp(temp_depfile);
 
 	target_fd = mkstemp(temp_target_base);
 
