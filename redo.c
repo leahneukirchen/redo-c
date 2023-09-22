@@ -548,15 +548,61 @@ compute_uprel()
 	}
 }
 
+char *
+resolve_uprel(char *buffer, char *file)
+{
+	char *f_orig = file;
+	if (*file == '/')
+		return f_orig;
+	if (*file == '.' && *(file+1) == '/')
+		file += 2;
+
+	if (!*uprel)
+		return f_orig;
+
+	char *u = uprel;
+
+	char *s = strchr(file + 1, '/');
+	if (s) {
+		u += 2;
+		do  {
+			if (*(s+1) == '.') {
+				if (*(s+2) == '/') {
+					s += 2;
+					file = s + 1;
+					continue;
+				}
+				// we assume a valid path if we encounter a ..
+				if (*(s+2) == '.') {
+					return f_orig;
+				}
+			}
+
+			file = s + 1;
+			u += 3;
+			s = strchr(file, '/');
+		} while (*u == '/' && s);
+	}
+
+	strcpy(buffer, u);
+	strcat(buffer, file);
+
+	return buffer;
+}
+
 static int
 write_dep(int dep_fd, char *file)
 {
 	int fd = open(file, O_RDONLY);
 	if (fd < 0)
 		return 0;
-	dprintf(dep_fd, "=%s %s %s%s\n",
-	    hashfile(fd), datefile(fd), (*file == '/' ? "" : uprel), file);
+
+	char buf[PATH_MAX];
+	file = resolve_uprel(buf, file);
+
+	dprintf(dep_fd, "=%s %s %s\n", hashfile(fd), datefile(fd), file);
 	close(fd);
+
 	return 0;
 }
 
@@ -655,7 +701,15 @@ run_script(char *target, int implicit)
 	target_fd = mkstemp(temp_target_base);
 
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
-	write_dep(dep_fd, dofile);
+	if (*(dofile + 2) == '.' && *(dofile + 3) == '.') {
+		write_dep(dep_fd, dofile);
+
+	} else {
+		char ub = uprel[0];
+		uprel[0] = 0;
+		write_dep(dep_fd, dofile);
+		uprel[0] = ub;
+	}
 
 	// .do files are called from the directory they reside in, we need to
 	// prefix the arguments with the path from the dofile to the target
@@ -867,7 +921,11 @@ redo_ifchange(int targetc, char *targetv[])
 				    O_WRONLY | O_APPEND);
 				if (stat(job->temp_target, &st) == 0) {
 					rename(job->temp_target, target);
+
+					char ub = uprel[0];
+					uprel[0] = 0;
 					write_dep(dfd, target);
+					uprel[0] = ub;
 				} else {
 					remove(job->temp_target);
 					redo_ifcreate(dfd, target);
