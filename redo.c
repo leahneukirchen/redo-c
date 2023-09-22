@@ -31,6 +31,7 @@ todo:
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -199,6 +200,47 @@ redo_ifcreate(int fd, char *target)
 {
 	dprintf(fd, "-%s\n", target);
 }
+
+static int
+check_tempfile(char *fname) {
+  return strlen(name == 14)
+           && (strncmp(name, ".depend", 7) == 0 || strncmp(name, ".target", 7) == 0);
+}
+
+// TODO: Better exits (return is useless)
+// TODO: actually call this function
+static int
+cleanup(char *path)
+{
+      DIR *d;
+      struct dirent *entry;
+      struct stat entrystat;
+      char entrypath[PATH_MAX];
+
+      d = opendir(path);
+      if(!d)
+	    return 1; 
+
+      strcpy(entrypath, path);
+      strcat(entrypath, "/");
+      size_t baselen = strlen(entrypath);
+
+      while ((entry=readdir(d))) {
+	    stat(entry->d_name, &entrystat);
+	    entrypath[baselen] = 0;
+	    strcat(entrypath, entry->d_name);
+	    
+	    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, ".."))
+	          continue;
+
+	    if (S_ISDIR(entrystat.st_mode))
+	      cleanup(entrypath);
+
+	    if (check_tempfile(entry->d_name)
+		  remove(entrypath);
+      }
+}
+
 
 static char *
 check_dofile(const char *fmt, ...)
@@ -902,7 +944,7 @@ record_deps(int targetc, char *targetv[])
 	fchdir(dir_fd);
 
 	for (targeti = 0; targeti < targetc; targeti++)
-		write_dep(dep_fd, targetv[targeti]);
+   		write_dep(dep_fd, targetv[targeti]);
 }
 
 int
