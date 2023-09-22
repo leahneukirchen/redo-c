@@ -868,6 +868,9 @@ redo_ifchange(int targetc, char *targetv[])
 				if (stat(job->temp_target, &st) == 0) {
 					rename(job->temp_target, target);
 					write_dep(dfd, target);
+
+					if (st.st_size > 1)
+						remove(target);
 				} else {
 					remove(job->temp_target);
 					redo_ifcreate(dfd, target);
