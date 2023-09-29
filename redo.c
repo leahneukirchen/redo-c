@@ -701,15 +701,11 @@ run_script(char *target, int implicit)
 	target_fd = mkstemp(temp_target_base);
 
 	fprintf(stderr, "redo%*.*s %s # %s\n", level*2, level*2, " ", orig_target, dofile);
-	if (*(dofile + 2) == '.' && *(dofile + 3) == '.') {
-		write_dep(dep_fd, dofile);
 
-	} else {
-		char ub = uprel[0];
-		uprel[0] = 0;
-		write_dep(dep_fd, dofile);
-		uprel[0] = ub;
-	}
+	char ub = uprel[0];
+	uprel[0] = 0;
+	write_dep(dep_fd, dofile);
+	uprel[0] = ub;
 
 	// .do files are called from the directory they reside in, we need to
 	// prefix the arguments with the path from the dofile to the target
